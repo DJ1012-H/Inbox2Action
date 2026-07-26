@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "ReviewStatus": {
+      "enum": [
+        "draft",
+        "reviewed",
+        "approved",
+        "rejected"
+      ],
+      "title": "ReviewStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "maxLength": 64,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9._-]{3,64}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "changes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Changes",
+      "type": "array"
+    },
+    "dataset_version": {
+      "const": "deepseek-validation-v1",
+      "default": "deepseek-validation-v1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "notes": {
+      "default": "",
+      "maxLength": 4000,
+      "title": "Notes",
+      "type": "string"
+    },
+    "reviewed_at": {
+      "format": "date",
+      "title": "Reviewed At",
+      "type": "string"
+    },
+    "reviewer": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/ReviewStatus",
+      "default": "draft"
+    }
+  },
+  "required": [
+    "case_id",
+    "reviewer",
+    "reviewed_at",
+    "changes"
+  ],
+  "title": "ReviewRecordV1",
+  "type": "object"
+}

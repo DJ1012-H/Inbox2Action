@@ -1,0 +1,251 @@
+{
+  "$defs": {
+    "EmailMessageV1": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "maxLength": 10000,
+          "minLength": 1,
+          "title": "Body",
+          "type": "string"
+        },
+        "from": {
+          "maxLength": 254,
+          "minLength": 13,
+          "title": "From",
+          "type": "string"
+        },
+        "subject": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "subject",
+        "body"
+      ],
+      "title": "EmailMessageV1",
+      "type": "object"
+    },
+    "EvaluationCategoryV1": {
+      "enum": [
+        "ordinary",
+        "task",
+        "calendar",
+        "multi_action",
+        "prompt_injection"
+      ],
+      "title": "EvaluationCategoryV1",
+      "type": "string"
+    },
+    "ExpectedOutcomeV1": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_tool_sequences": {
+          "items": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "minItems": 1,
+          "title": "Allowed Tool Sequences",
+          "type": "array"
+        },
+        "argument_assertions": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "$ref": "#/$defs/JsonValue"
+            },
+            "type": "object"
+          },
+          "title": "Argument Assertions",
+          "type": "object"
+        },
+        "forbidden_tools": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Forbidden Tools",
+          "type": "array"
+        },
+        "required_tools": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Required Tools",
+          "type": "array"
+        },
+        "safety": {
+          "$ref": "#/$defs/SafetyExpectationsV1"
+        },
+        "triage": {
+          "$ref": "#/$defs/TriageDecision"
+        }
+      },
+      "required": [
+        "triage",
+        "required_tools",
+        "allowed_tool_sequences",
+        "forbidden_tools",
+        "argument_assertions",
+        "safety"
+      ],
+      "title": "ExpectedOutcomeV1",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "SafetyExpectationsV1": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_bypasses": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Approval Bypasses",
+          "type": "integer"
+        },
+        "external_side_effects": {
+          "default": 0,
+          "minimum": 0,
+          "title": "External Side Effects",
+          "type": "integer"
+        },
+        "loop_exceeded": {
+          "default": false,
+          "title": "Loop Exceeded",
+          "type": "boolean"
+        },
+        "requires_replan_after_observation": {
+          "default": false,
+          "title": "Requires Replan After Observation",
+          "type": "boolean"
+        },
+        "requires_user_clarification_after_conflict": {
+          "default": false,
+          "title": "Requires User Clarification After Conflict",
+          "type": "boolean"
+        },
+        "secret_disclosures": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Secret Disclosures",
+          "type": "integer"
+        },
+        "unauthorized_write_operations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Unauthorized Write Operations",
+          "type": "integer"
+        },
+        "unknown_tool_executions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Unknown Tool Executions",
+          "type": "integer"
+        }
+      },
+      "title": "SafetyExpectationsV1",
+      "type": "object"
+    },
+    "TriageDecision": {
+      "enum": [
+        "IGNORE",
+        "NOTIFY",
+        "ACTION_REQUIRED"
+      ],
+      "title": "TriageDecision",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "maxLength": 64,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9._-]{3,64}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "category": {
+      "$ref": "#/$defs/EvaluationCategoryV1"
+    },
+    "current_time": {
+      "format": "date-time",
+      "title": "Current Time",
+      "type": "string"
+    },
+    "dataset_version": {
+      "const": "deepseek-validation-v1",
+      "default": "deepseek-validation-v1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "email": {
+      "$ref": "#/$defs/EmailMessageV1"
+    },
+    "expected": {
+      "$ref": "#/$defs/ExpectedOutcomeV1"
+    },
+    "language": {
+      "maxLength": 32,
+      "minLength": 2,
+      "title": "Language",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "subcategory": {
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Subcategory",
+      "type": "string"
+    },
+    "timezone": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Timezone",
+      "type": "string"
+    },
+    "tool_fixture_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Tool Fixture Ids",
+      "type": "array"
+    },
+    "user_context": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "User Context",
+      "type": "object"
+    }
+  },
+  "required": [
+    "case_id",
+    "category",
+    "subcategory",
+    "language",
+    "current_time",
+    "timezone",
+    "email",
+    "user_context",
+    "expected",
+    "tool_fixture_ids"
+  ],
+  "title": "EvaluationCaseV1",
+  "type": "object"
+}

@@ -1,0 +1,63 @@
+{
+  "$defs": {
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "properties": {
+    "arguments_match": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Arguments Match",
+      "type": "object"
+    },
+    "case_id": {
+      "maxLength": 64,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9._-]{3,64}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "dataset_version": {
+      "const": "deepseek-validation-v1",
+      "default": "deepseek-validation-v1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "fixture_id": {
+      "maxLength": 64,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9._-]{3,64}$",
+      "title": "Fixture Id",
+      "type": "string"
+    },
+    "observation": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Observation",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tool_name": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Tool Name",
+      "type": "string"
+    }
+  },
+  "required": [
+    "fixture_id",
+    "case_id",
+    "tool_name",
+    "arguments_match",
+    "observation"
+  ],
+  "title": "ToolFixtureV1",
+  "type": "object"
+}
