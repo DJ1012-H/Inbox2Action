@@ -1,0 +1,146 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Literal
+from zoneinfo import ZoneInfo
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from inbox2action.tools.schemas import (
+    AskUserArgs,
+    CheckCalendarAvailabilityArgs,
+    DoneArgs,
+    NoArguments,
+    SaveReplyDraftArgs,
+)
+
+ObservationStatus = Literal[
+    "ok",
+    "conflict",
+    "proposal_created",
+    "waiting_for_user",
+    "complete",
+]
+
+
+class ToolObservation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tool_name: str
+    observation_type: str
+    status: ObservationStatus
+    data: dict[str, object] = Field(default_factory=dict)
+    tool_call_id: str | None = None
+
+
+@dataclass(frozen=True)
+class DraftProposal:
+    proposal_id: str
+    recipient: str | None
+    subject: str
+    body: str
+
+
+def _default_busy_intervals() -> list[tuple[datetime, datetime]]:
+    timezone = ZoneInfo("Asia/Taipei")
+    return [
+        (
+            datetime(2026, 7, 27, 9, 0, tzinfo=timezone),
+            datetime(2026, 7, 27, 10, 0, tzinfo=timezone),
+        )
+    ]
+
+
+@dataclass
+class MockToolRuntime:
+    """In-memory deterministic runtime; it performs no file or network I/O."""
+
+    now: datetime = field(
+        default_factory=lambda: datetime(
+            2026,
+            7,
+            26,
+            9,
+            0,
+            tzinfo=ZoneInfo("Asia/Taipei"),
+        )
+    )
+    busy_intervals: list[tuple[datetime, datetime]] = field(
+        default_factory=_default_busy_intervals
+    )
+    proposals: list[DraftProposal] = field(default_factory=list)
+
+    def get_current_time(self, _: NoArguments) -> ToolObservation:
+        return ToolObservation(
+            tool_name="get_current_time",
+            observation_type="current_time",
+            status="ok",
+            data={"now": self.now.isoformat(), "timezone": "Asia/Taipei"},
+        )
+
+    def check_calendar_availability(
+        self,
+        arguments: CheckCalendarAvailabilityArgs,
+    ) -> ToolObservation:
+        conflict = any(
+            arguments.start < busy_end and arguments.end > busy_start
+            for busy_start, busy_end in self.busy_intervals
+        )
+        if conflict:
+            suggested_start = arguments.end + timedelta(minutes=30)
+            return ToolObservation(
+                tool_name="check_calendar_availability",
+                observation_type="calendar_availability",
+                status="conflict",
+                data={
+                    "available": False,
+                    "conflict": True,
+                    "suggested_start": suggested_start.isoformat(),
+                    "timezone": arguments.timezone,
+                },
+            )
+        return ToolObservation(
+            tool_name="check_calendar_availability",
+            observation_type="calendar_availability",
+            status="ok",
+            data={"available": True, "conflict": False, "timezone": arguments.timezone},
+        )
+
+    def save_reply_draft(self, arguments: SaveReplyDraftArgs) -> ToolObservation:
+        proposal_id = f"proposal-{len(self.proposals) + 1}"
+        self.proposals.append(
+            DraftProposal(
+                proposal_id=proposal_id,
+                recipient=arguments.recipient,
+                subject=arguments.subject,
+                body=arguments.body,
+            )
+        )
+        return ToolObservation(
+            tool_name="save_reply_draft",
+            observation_type="reply_draft_proposal",
+            status="proposal_created",
+            data={
+                "proposal_id": proposal_id,
+                "external_side_effects": 0,
+                "subject_length": len(arguments.subject),
+                "body_length": len(arguments.body),
+            },
+        )
+
+    def ask_user(self, arguments: AskUserArgs) -> ToolObservation:
+        return ToolObservation(
+            tool_name="ask_user",
+            observation_type="user_question",
+            status="waiting_for_user",
+            data={"question": arguments.question},
+        )
+
+    def done(self, arguments: DoneArgs) -> ToolObservation:
+        return ToolObservation(
+            tool_name="done",
+            observation_type="done",
+            status="complete",
+            data={"completed": True, "summary_length": len(arguments.summary)},
+        )
