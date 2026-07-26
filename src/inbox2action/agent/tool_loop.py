@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from time import perf_counter
 from typing import Protocol
@@ -96,6 +96,7 @@ class ToolLoop:
         *,
         max_tool_steps: int = 6,
         required_tools_before_done: Sequence[str] = (),
+        validated_call_observer: Callable[[int, ValidatedToolCall], None] | None = None,
     ) -> None:
         if max_tool_steps <= 0 or max_tool_steps > 20:
             raise ValueError("max_tool_steps must be between 1 and 20")
@@ -107,6 +108,7 @@ class ToolLoop:
         self._registry = registry
         self._max_tool_steps = max_tool_steps
         self._required_tools_before_done = required_tools
+        self._validated_call_observer = validated_call_observer
 
     def run(self, initial_messages: Sequence[Mapping[str, object]]) -> ToolLoopResult:
         messages: list[dict[str, object]] = [
@@ -190,6 +192,9 @@ class ToolLoop:
                         "Completion text claimed an unsupported external write.",
                         trace=trace,
                     )
+
+            if self._validated_call_observer is not None:
+                self._validated_call_observer(step, validated)
 
             started = perf_counter()
             try:

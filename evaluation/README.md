@@ -23,3 +23,11 @@ Run `uv run python scripts/validate_evaluation_assets.py --allow-empty` while
 the formal dataset is intentionally empty. Add `--require-approved-reviews` for
 the Gold Label approval gate. Codex-generated candidates remain non-approved
 until an explicit review record makes them eligible.
+
+Pilot Runner v1 uses only the formal Bundle and exact Tool Fixtures. Its default
+CLI mode is dry-run; it never enables a live model or reads an API key. Dry-run
+validates selection and review gates but is not model acceptance. Fixture lookup
+requires complete arguments, while `argument_assertions` score a strict recursive
+JSON subset of validated arguments. Result files omit email bodies, complete Tool
+arguments, observations, and reasoning content; infrastructure failures are
+reported separately from model failures.

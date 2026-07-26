@@ -12,6 +12,7 @@ from inbox2action.tools.mock_tools import MockToolRuntime, ToolObservation
 from inbox2action.tools.policy import (
     InvalidToolArgumentsError,
     ObservationValidationError,
+    ToolError,
     ToolExecutionError,
     ToolIdMismatchError,
     canonical_arguments,
@@ -157,6 +158,8 @@ class ToolRegistry:
         self._execution_counts[validated.call.name] += 1
         try:
             raw_observation = spec.handler(validated.arguments)
+        except ToolError:
+            raise
         except Exception as exc:
             raise ToolExecutionError("Mock Tool execution failed.") from exc
         try:
