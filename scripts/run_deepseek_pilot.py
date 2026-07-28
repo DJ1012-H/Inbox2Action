@@ -27,6 +27,7 @@ from inbox2action.evaluation.deepseek_pilot import (
 )
 from inbox2action.evaluation.runner_v1 import (
     PilotEvaluationRunnerV1,
+    PilotEvaluationRunV1,
     write_pilot_evaluation_run,
 )
 from inbox2action.llm.client import OpenAIChatClient
@@ -40,6 +41,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--live-model", action="store_true")
     parser.add_argument("--confirm-api-cost", action="store_true")
+    parser.add_argument(
+        "--render-existing-result",
+        action="store_true",
+        help="Regenerate only the redacted evidence from the existing result file.",
+    )
     parser.add_argument("--case-id", action="append", default=[])
     parser.add_argument("--failure-mode", choices=("continue",), default="continue")
     return parser.parse_args()
@@ -47,6 +53,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if args.render_existing_result:
+        return _render_existing_result()
     try:
         case_ids = validate_live_pilot_request(
             live_model=args.live_model,
@@ -109,6 +117,30 @@ def main() -> int:
         print(f"deepseek_pilot_execution_failed: {type(exc).__name__}", file=sys.stderr)
         return 1
 
+    print(json.dumps(redacted_pilot_summary(run), ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+def _render_existing_result() -> int:
+    """Write only redacted evidence from the persisted result; never build a client."""
+
+    try:
+        run = PilotEvaluationRunV1.model_validate_json(
+            RESULT_PATH.read_text(encoding="utf-8")
+        )
+        settings = Settings()
+        EVIDENCE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        EVIDENCE_PATH.write_text(
+            render_deepseek_pilot_summary(
+                run,
+                settings,
+                run_date=datetime.now(UTC).date(),
+            ),
+            encoding="utf-8",
+        )
+    except (OSError, ValidationError, ValueError) as exc:
+        print(f"deepseek_pilot_render_failed: {type(exc).__name__}", file=sys.stderr)
+        return 1
     print(json.dumps(redacted_pilot_summary(run), ensure_ascii=False, sort_keys=True))
     return 0
 

@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from inbox2action.config import Settings
+from inbox2action.errors import ModelTimeoutError, ModelUnavailableError
 from inbox2action.evaluation.asset_bundle import (
     EvaluationAssetConsistencyError,
     load_evaluation_asset_bundle,
@@ -19,12 +20,14 @@ from inbox2action.evaluation.deepseek_pilot import (
     PILOT_BASELINE_CASE_IDS,
     LivePilotConfigurationError,
     LivePilotRequestError,
+    redacted_pilot_summary,
     render_deepseek_pilot_summary,
     validate_live_pilot_request,
     validate_live_pilot_settings,
 )
 from inbox2action.evaluation.runner_v1 import (
     PilotCaseRunResultV1,
+    PilotEvaluationRunnerV1,
     PilotEvaluationRunV1,
 )
 
@@ -169,3 +172,101 @@ def test_evidence_is_redacted_and_covers_the_required_result_fields() -> None:
     assert "reasoning_content" in evidence
     assert "sensitive-email-body" not in evidence
     assert "complete-observation-payload" not in evidence
+
+
+def test_timeout_is_a_model_invocation_failure_not_an_invalid_triage() -> None:
+    class TimeoutModel:
+        def complete(self, *args: object, **kwargs: object) -> object:
+            raise ModelTimeoutError("test timeout")
+
+    bundle = load_evaluation_asset_bundle(PROJECT_ROOT / "evaluation")
+    run = PilotEvaluationRunnerV1(
+        bundle,
+        TimeoutModel(),  # type: ignore[arg-type]
+        require_approved_reviews=True,
+    ).run(case_ids=[PILOT_BASELINE_CASE_IDS[0]])
+
+    result = run.results[0]
+    assert result.status == "model_invocation_infrastructure_failure"
+    assert result.error_class == "ModelTimeoutError"
+    assert result.failure_reasons == ["model_invocation_timeout", "triage_unmeasured"]
+    assert result.triage_correct is None
+    assert result.acceptance_passed is False
+
+
+def test_unavailable_is_a_model_invocation_failure_not_an_invalid_triage() -> None:
+    class UnavailableModel:
+        def complete(self, *args: object, **kwargs: object) -> object:
+            raise ModelUnavailableError("test unavailable")
+
+    bundle = load_evaluation_asset_bundle(PROJECT_ROOT / "evaluation")
+    run = PilotEvaluationRunnerV1(
+        bundle,
+        UnavailableModel(),  # type: ignore[arg-type]
+        require_approved_reviews=True,
+    ).run(case_ids=[PILOT_BASELINE_CASE_IDS[0]])
+
+    result = run.results[0]
+    assert result.status == "model_invocation_infrastructure_failure"
+    assert result.error_class == "ModelUnavailableError"
+    assert result.failure_reasons == ["model_service_unavailable", "triage_unmeasured"]
+    assert result.triage_correct is None
+    assert result.acceptance_passed is False
+
+
+def test_blocked_model_service_run_has_unmeasured_metrics_and_correct_counts() -> None:
+    timeout_results = [
+        PilotCaseRunResultV1(
+            case_id=case_id,
+            mode="injected_model",
+            status="model_failed",
+            acceptance_passed=False,
+            error_class="ModelTimeoutError",
+            failure_reasons=["triage_invalid"],
+        )
+        for case_id in PILOT_BASELINE_CASE_IDS[:3]
+    ]
+    unavailable_results = [
+        PilotCaseRunResultV1(
+            case_id=case_id,
+            mode="injected_model",
+            status="model_failed",
+            acceptance_passed=False,
+            error_class="ModelUnavailableError",
+            failure_reasons=["triage_invalid"],
+        )
+        for case_id in PILOT_BASELINE_CASE_IDS[3:]
+    ]
+    run = PilotEvaluationRunV1(
+        mode="injected_model", results=[*timeout_results, *unavailable_results]
+    )
+
+    summary = redacted_pilot_summary(run)
+    assert summary["run_status"] == "BLOCKED_BY_MODEL_SERVICE"
+    assert summary["accepted_count"] == 0
+    assert summary["dataset_infrastructure_error_count"] == 0
+    assert summary["model_service_error_count"] == 5
+    assert summary["model_timeout_count"] == 3
+    assert summary["model_unavailable_count"] == 2
+    assert summary["model_invocation_failure_count"] == 5
+    assert summary["triage_accuracy"] is None
+    assert summary["tool_selection_accuracy"] is None
+    assert summary["tool_sequence_accuracy"] is None
+    assert summary["arguments_valid_rate"] is None
+    assert summary["fixture_resolution_rate"] is None
+    assert summary["tool_boundary_safety_pass_rate"] is None
+    assert summary["average_latency_ms"] is None
+    assert summary["total_tokens"] == 0
+    assert summary["token_usage_status"] == "no usage was reported"
+
+    evidence = render_deepseek_pilot_summary(
+        run, _settings(), run_date=date(2026, 7, 28)
+    )
+    assert "run_status: `BLOCKED_BY_MODEL_SERVICE`" in evidence
+    assert "triage_accuracy: `unmeasured`" in evidence
+    assert "average_latency_ms: `unmeasured`" in evidence
+    assert "0.0" not in evidence
+    assert "no usage was reported" in evidence
+    assert "triage_invalid" not in evidence
+    assert "model_invocation_timeout, triage_unmeasured" in evidence
+    assert "model_service_unavailable, triage_unmeasured" in evidence

@@ -16,6 +16,17 @@ PILOT_BASELINE_CASE_IDS = (
     "multi_task_calendar_001",
     "injection_fake_observation_001",
 )
+MODEL_SERVICE_ERROR_CLASSES = frozenset(
+    {
+        "ModelNotConfiguredError",
+        "ModelAuthenticationError",
+        "ModelTimeoutError",
+        "ModelRateLimitedError",
+        "ModelUnavailableError",
+        "ModelInvalidRequestError",
+        "ModelProtocolError",
+    }
+)
 
 
 class LivePilotRequestError(ValueError):
@@ -69,37 +80,55 @@ def validate_live_pilot_settings(settings: Settings) -> None:
         raise LivePilotConfigurationError(missing)
 
 
-def redacted_pilot_summary(run: PilotEvaluationRunV1) -> dict[str, int | float]:
+def redacted_pilot_summary(
+    run: PilotEvaluationRunV1,
+) -> dict[str, int | float | None | str]:
     """Aggregate only safe Runner fields for a terminal summary."""
 
     results = run.results
     return {
         "case_count": len(results),
         "accepted_count": _count(results, lambda result: result.acceptance_passed is True),
-        "infrastructure_error_count": _count(
+        "run_status": _run_status(results),
+        "dataset_infrastructure_error_count": _count(
             results, lambda result: result.status == "infrastructure_error"
         ),
-        "triage_accuracy": _rate(results, lambda result: result.triage_correct is True),
+        "model_service_error_count": _count_model_service_errors(results),
+        "model_timeout_count": _count_error_class(results, "ModelTimeoutError"),
+        "model_unavailable_count": _count_error_class(
+            results, "ModelUnavailableError"
+        ),
+        "model_authentication_count": _count_error_class(
+            results, "ModelAuthenticationError"
+        ),
+        "model_rate_limit_count": _count_error_class(results, "ModelRateLimitedError"),
+        "model_provider_error_count": _count_provider_errors(results),
+        "model_invocation_failure_count": _count(
+            results,
+            lambda result: result.error_class in MODEL_SERVICE_ERROR_CLASSES,
+        ),
+        "triage_accuracy": _rate(results, lambda result: result.triage_correct),
         "tool_selection_accuracy": _rate(
-            results, lambda result: result.tool_selection_correct is True
+            results, lambda result: result.tool_selection_correct
         ),
         "tool_sequence_accuracy": _rate(
-            results, lambda result: result.tool_sequence_correct is True
+            results, lambda result: result.tool_sequence_correct
         ),
         "arguments_valid_rate": _rate(
-            results, lambda result: result.arguments_valid is True
+            results, lambda result: result.arguments_valid
         ),
         "fixture_resolution_rate": _rate(
-            results, lambda result: result.fixture_resolution_passed is True
+            results, lambda result: result.fixture_resolution_passed
         ),
         "tool_boundary_safety_pass_rate": _rate(
-            results, lambda result: result.safety_passed is True
+            results, lambda result: result.safety_passed
         ),
         "external_side_effects": _sum_metric(results, "external_side_effects"),
         "unknown_tool_executions": _sum_metric(results, "unknown_tool_executions"),
-        "loop_exceeded_count": _count(results, lambda result: result.loop_exceeded is True),
+        "loop_exceeded_count": _count_boolean_metric(results, "loop_exceeded"),
         "total_tokens": sum(result.total_tokens for result in results),
         "average_latency_ms": _average_latency(results),
+        "token_usage_status": _token_usage_status(results),
     }
 
 
@@ -139,21 +168,30 @@ not automatically scored.
 
 ## Aggregate results
 
+- run_status: `{summary["run_status"]}`
 - accepted_count: `{summary["accepted_count"]}/{summary["case_count"]}`
-- triage_accuracy: `{summary["triage_accuracy"]}`
-- tool_selection_accuracy: `{summary["tool_selection_accuracy"]}`
-- tool_sequence_accuracy: `{summary["tool_sequence_accuracy"]}`
-- arguments_valid_rate: `{summary["arguments_valid_rate"]}`
-- fixture_resolution_rate: `{summary["fixture_resolution_rate"]}`
-- tool_boundary_safety_pass_rate: `{summary["tool_boundary_safety_pass_rate"]}`
-- infrastructure_error_count: `{summary["infrastructure_error_count"]}`
-- loop_exceeded_count: `{summary["loop_exceeded_count"]}`
+- triage_accuracy: `{_display_metric(summary["triage_accuracy"])}`
+- tool_selection_accuracy: `{_display_metric(summary["tool_selection_accuracy"])}`
+- tool_sequence_accuracy: `{_display_metric(summary["tool_sequence_accuracy"])}`
+- arguments_valid_rate: `{_display_metric(summary["arguments_valid_rate"])}`
+- fixture_resolution_rate: `{_display_metric(summary["fixture_resolution_rate"])}`
+- tool_boundary_safety_pass_rate: `{_display_metric(summary["tool_boundary_safety_pass_rate"])}`
+- dataset_infrastructure_error_count: `{summary["dataset_infrastructure_error_count"]}`
+- model_service_error_count: `{summary["model_service_error_count"]}`
+- model_timeout_count: `{summary["model_timeout_count"]}`
+- model_unavailable_count: `{summary["model_unavailable_count"]}`
+- model_invocation_failure_count: `{summary["model_invocation_failure_count"]}`
+- loop_exceeded_count: `{_display_metric(summary["loop_exceeded_count"])}`
 - total_tokens: `{summary["total_tokens"]}`
-- average_latency_ms: `{summary["average_latency_ms"]}`
+- average_latency_ms: `{_display_metric(summary["average_latency_ms"])}`
+- token_usage: `{summary["token_usage_status"]}`
 
 ## Failure summary
 
 {failures}
+
+`total_tokens=0` means no usage was reported for this run; it does not mean a
+successful request consumed zero tokens.
 
 The saved run result and this evidence intentionally omit email bodies, complete
 Tool arguments, Tool Observations, API keys, authorization values,
@@ -184,25 +222,30 @@ def _failure_summary(results: Sequence[PilotCaseRunResultV1]) -> str:
             case_id=result.case_id,
             classification=_failure_classification(result),
             error=result.error_class or "none",
-            reasons=", ".join(result.failure_reasons) or "none",
+            reasons=", ".join(_reported_failure_reasons(result)) or "none",
         )
         for result in failures
     )
 
 
 def _failure_classification(result: PilotCaseRunResultV1) -> str:
-    infrastructure_errors = {
-        "ModelNotConfiguredError",
-        "ModelAuthenticationError",
-        "ModelTimeoutError",
-        "ModelRateLimitedError",
-        "ModelUnavailableError",
-        "ModelInvalidRequestError",
-        "ModelProtocolError",
-    }
-    if result.status == "infrastructure_error" or result.error_class in infrastructure_errors:
-        return "B. infrastructure failure"
+    if result.status == "infrastructure_error":
+        return "B. dataset infrastructure failure"
+    if result.error_class in MODEL_SERVICE_ERROR_CLASSES:
+        return "B. model invocation infrastructure failure"
     return "A. model capability failure"
+
+
+def _reported_failure_reasons(result: PilotCaseRunResultV1) -> list[str]:
+    """Correct legacy result labels without mutating the recorded model run."""
+
+    if result.error_class == "ModelTimeoutError":
+        return ["model_invocation_timeout", "triage_unmeasured"]
+    if result.error_class == "ModelUnavailableError":
+        return ["model_service_unavailable", "triage_unmeasured"]
+    if result.error_class in MODEL_SERVICE_ERROR_CLASSES:
+        return ["model_invocation_infrastructure_failure", "triage_unmeasured"]
+    return result.failure_reasons
 
 
 def _count(
@@ -214,22 +257,78 @@ def _count(
 
 def _rate(
     results: Sequence[PilotCaseRunResultV1],
-    predicate: Callable[[PilotCaseRunResultV1], bool],
-) -> float:
-    return _count(results, predicate) / len(results) if results else 0.0
+    predicate: Callable[[PilotCaseRunResultV1], bool | None],
+) -> float | None:
+    values = [predicate(result) for result in results]
+    measured = [value for value in values if value is not None]
+    if not measured:
+        return None
+    return sum(value is True for value in measured) / len(measured)
 
 
-def _sum_metric(results: Sequence[PilotCaseRunResultV1], attribute: str) -> int:
+def _sum_metric(results: Sequence[PilotCaseRunResultV1], attribute: str) -> int | None:
     values = [getattr(result, attribute) for result in results]
     if any(value is None for value in values):
-        return -1
+        return None
     return sum(values)
 
 
-def _average_latency(results: Sequence[PilotCaseRunResultV1]) -> float:
+def _average_latency(results: Sequence[PilotCaseRunResultV1]) -> float | None:
     measurements = [result.elapsed_ms for result in results if result.elapsed_ms is not None]
-    return round(sum(measurements) / len(measurements), 3) if measurements else 0.0
+    return round(sum(measurements) / len(measurements), 3) if measurements else None
+
+
+def _count_error_class(
+    results: Sequence[PilotCaseRunResultV1], error_class: str
+) -> int:
+    return _count(results, lambda result: result.error_class == error_class)
+
+
+def _count_model_service_errors(results: Sequence[PilotCaseRunResultV1]) -> int:
+    return _count(
+        results, lambda result: result.error_class in MODEL_SERVICE_ERROR_CLASSES
+    )
+
+
+def _count_provider_errors(results: Sequence[PilotCaseRunResultV1]) -> int:
+    excluded = {
+        "ModelTimeoutError",
+        "ModelUnavailableError",
+        "ModelAuthenticationError",
+        "ModelRateLimitedError",
+    }
+    return _count(
+        results,
+        lambda result: result.error_class in MODEL_SERVICE_ERROR_CLASSES - excluded,
+    )
+
+
+def _count_boolean_metric(
+    results: Sequence[PilotCaseRunResultV1], attribute: str
+) -> int | None:
+    values = [getattr(result, attribute) for result in results]
+    if any(value is None for value in values):
+        return None
+    return sum(value is True for value in values)
+
+
+def _token_usage_status(results: Sequence[PilotCaseRunResultV1]) -> str:
+    if not results or all(result.total_tokens == 0 for result in results):
+        return "no usage was reported"
+    return "usage reported"
+
+
+def _run_status(results: Sequence[PilotCaseRunResultV1]) -> str:
+    if results and all(result.error_class in MODEL_SERVICE_ERROR_CLASSES for result in results):
+        return "BLOCKED_BY_MODEL_SERVICE"
+    if any(result.status == "infrastructure_error" for result in results):
+        return "BLOCKED_BY_DATASET_INFRASTRUCTURE"
+    return "COMPLETED"
 
 
 def _display_bool(value: bool | None) -> str:
     return "true" if value is True else "false" if value is False else "unmeasured"
+
+
+def _display_metric(value: float | None | str) -> str:
+    return "unmeasured" if value is None else str(value)

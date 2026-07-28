@@ -17,7 +17,16 @@ from inbox2action.agent.tool_loop import (
     ToolLoopLimitError,
     ToolTraceEntry,
 )
-from inbox2action.errors import ModelError
+from inbox2action.errors import (
+    ModelAuthenticationError,
+    ModelError,
+    ModelInvalidRequestError,
+    ModelNotConfiguredError,
+    ModelProtocolError,
+    ModelRateLimitedError,
+    ModelTimeoutError,
+    ModelUnavailableError,
+)
 from inbox2action.evaluation.asset_bundle import (
     EvaluationAssetBundleV1,
     EvaluationAssetConsistencyError,
@@ -55,6 +64,7 @@ RunStatus = Literal[
     "sequence_mismatch",
     "approval_blocked",
     "not_executed",
+    "model_invocation_infrastructure_failure",
 ]
 
 
@@ -254,7 +264,7 @@ class PilotEvaluationRunnerV1:
             )
             triage = parse_email_triage_response(triage_response)
         except ModelError as exc:
-            return self._model_failure(case.case_id, type(exc).__name__, "triage_invalid")
+            return self._model_failure(case.case_id, exc)
 
         observed_arguments: list[tuple[int, str, dict[str, JsonValue]]] = []
 
@@ -548,17 +558,42 @@ class PilotEvaluationRunnerV1:
             results=[self._infrastructure_result(case_id, error_class, reason)],
         )
 
-    def _model_failure(
-        self, case_id: str, error_class: str, reason: str
-    ) -> PilotCaseRunResultV1:
+    def _model_failure(self, case_id: str, error: ModelError) -> PilotCaseRunResultV1:
+        service_failure = isinstance(
+            error,
+            (
+                ModelNotConfiguredError,
+                ModelAuthenticationError,
+                ModelTimeoutError,
+                ModelRateLimitedError,
+                ModelUnavailableError,
+                ModelInvalidRequestError,
+                ModelProtocolError,
+            ),
+        )
+        failure_reasons = _model_failure_reasons(error, service_failure)
         return PilotCaseRunResultV1(
             case_id=case_id,
             mode="injected_model",
-            status="model_failed",
+            status=(
+                "model_invocation_infrastructure_failure"
+                if service_failure
+                else "model_failed"
+            ),
             acceptance_passed=False,
-            error_class=error_class,
-            failure_reasons=[reason],
+            error_class=type(error).__name__,
+            failure_reasons=failure_reasons,
         )
+
+
+def _model_failure_reasons(error: ModelError, service_failure: bool) -> list[str]:
+    if isinstance(error, ModelTimeoutError):
+        return ["model_invocation_timeout", "triage_unmeasured"]
+    if isinstance(error, ModelUnavailableError):
+        return ["model_service_unavailable", "triage_unmeasured"]
+    if service_failure:
+        return ["model_invocation_infrastructure_failure", "triage_unmeasured"]
+    return ["triage_invalid"]
 
 
 def _arguments_satisfy(
