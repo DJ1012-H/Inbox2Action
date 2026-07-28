@@ -11,14 +11,14 @@ from inbox2action.evaluation.assets import ReviewStatus
 PROJECT_ROOT = Path(__file__).parents[2]
 
 
-def test_formal_pilot_assets_keep_cases_reviews_and_observation_fixtures_consistent() -> None:
+def test_approved_pilot_assets_keep_cases_reviews_and_observation_fixtures_consistent() -> None:
     bundle = load_evaluation_asset_bundle(PROJECT_ROOT / "evaluation")
 
     validate_evaluation_asset_bundle(bundle)
 
     assert len(bundle.cases) == 15
     assert len(bundle.reviews) == 15
-    assert all(review.status is ReviewStatus.DRAFT for review in bundle.reviews)
+    assert all(review.status is ReviewStatus.APPROVED for review in bundle.reviews)
     assert {fixture.tool_name for fixture in bundle.fixtures} == {
         "check_calendar_availability"
     }
