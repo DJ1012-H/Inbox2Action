@@ -121,6 +121,7 @@ def test_successful_response_is_normalized_without_sdk_object_leak() -> None:
     assert result.total_tokens == 7
     assert completions.calls[0]["model"] == "deepseek-v4-flash"
     assert completions.calls[0]["response_format"] == {"type": "json_object"}
+    assert completions.calls[0]["extra_body"] == {"thinking": {"type": "disabled"}}
     assert "api_key" not in completions.calls[0]
 
 
@@ -161,6 +162,39 @@ def test_thinking_mode_requires_reasoning_for_tool_calls_and_sends_enabled_flag(
     assert result.reasoning_length == len("private reasoning")
     assert result.reasoning_sha256 is not None
     assert completions.calls[0]["extra_body"] == {"thinking": {"type": "enabled"}}
+
+
+def test_tool_loop_requests_require_a_tool_call() -> None:
+    response = SimpleNamespace(
+        model="deepseek-v4-flash",
+        choices=[
+            SimpleNamespace(
+                message=SimpleNamespace(
+                    content=None,
+                    tool_calls=[
+                        SimpleNamespace(
+                            id="call-1",
+                            function=SimpleNamespace(name="done", arguments='{"summary":"ok"}'),
+                        )
+                    ],
+                    reasoning_content=None,
+                ),
+                finish_reason="tool_calls",
+            )
+        ],
+        usage=SimpleNamespace(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+    )
+    completions = FakeCompletions(response=response)
+    client = OpenAIChatClient(
+        settings(), sdk_client_factory=lambda **_: FakeSdkClient(completions)
+    )
+
+    client.complete(
+        [{"role": "user", "content": "test"}],
+        tools=[{"type": "function", "function": {"name": "done"}}],
+    )
+
+    assert completions.calls[0]["tool_choice"] == "required"
 
 
 def test_thinking_mode_rejects_tool_call_without_reasoning_content() -> None:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -15,6 +15,7 @@ from inbox2action.tools.policy import (
     ToolError,
     ToolExecutionError,
     ToolIdMismatchError,
+    UnknownToolError,
     canonical_arguments,
     require_allowed_tool,
     trace_arguments,
@@ -55,6 +56,7 @@ class ToolRegistry:
         runtime: MockToolRuntime | None = None,
         *,
         handler_overrides: Mapping[str, ToolHandler] | None = None,
+        enabled_tool_names: Collection[str] | None = None,
     ) -> None:
         self.runtime = runtime or MockToolRuntime()
         handlers: dict[str, ToolHandler] = {
@@ -111,6 +113,14 @@ class ToolRegistry:
                 handler=handlers["done"],
             ),
         }
+        if enabled_tool_names is not None:
+            enabled = set(enabled_tool_names)
+            unknown = enabled.difference(self._specs)
+            if unknown:
+                raise ValueError("enabled_tool_names contains an unknown tool")
+            self._specs = {
+                name: spec for name, spec in self._specs.items() if name in enabled
+            }
         self._execution_counts = {name: 0 for name in self._specs}
 
     def openai_tools(self) -> list[dict[str, object]]:
@@ -131,6 +141,8 @@ class ToolRegistry:
 
     def validate_call(self, call: ToolCall) -> ValidatedToolCall:
         require_allowed_tool(call.name)
+        if call.name not in self._specs:
+            raise UnknownToolError("Tool was not exposed for this runtime context.")
         spec = self._specs[call.name]
         try:
             payload: Any = json.loads(call.arguments)

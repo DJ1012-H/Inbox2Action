@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from inbox2action.agent.tool_loop import ToolLoopLimitError, ToolTraceEntry
+from inbox2action.errors import ModelInvalidRequestError
 from inbox2action.evaluation.asset_bundle import EvaluationAssetBundleV1
 from inbox2action.evaluation.assets import (
     EvaluationCaseV1,
@@ -97,6 +98,19 @@ def test_injected_runner_passes_measured_boundary_and_exposes_unmeasured_safety(
     assert result.secret_disclosures is None
     assert result.approval_bypasses is None
     assert "2026-07-26T09:00:00+08:00" in str(model.messages[0])
+    assert '"decision":"IGNORE|NOTIFY|ACTION_REQUIRED"' in str(model.messages[0])
+    assert "confidence" in str(model.messages[0])
+    assert "conventionally warrants a professional reply" in str(model.messages[0])
+    assert "confirming receipt of a quotation" in str(model.messages[0])
+    assert "Call exactly one Tool per turn" in str(model.messages[1])
+    assert "do not call get_current_time" in str(model.messages[1])
+    assert "After ask_user returns waiting_for_user" in str(model.messages[1])
+    assert "subject exactly to 'Re: ' plus email.subject" in str(model.messages[1])
+    assert "Resolve relative deadlines from current_time" in str(model.messages[1])
+    assert "exact concise action phrase from the email" in str(model.messages[1])
+    assert "ISO 8601 with the explicit timezone offset" in str(model.messages[1])
+    assert "relative weekday has already passed" in str(model.messages[1])
+    assert "End every bounded workflow with done" in str(model.messages[1])
     assert "Untrusted synthetic email." not in result.model_dump_json()
 
 
@@ -113,6 +127,31 @@ def test_invalid_triage_and_unknown_tool_fail_closed() -> None:
     assert unknown.unknown_tool_attempts == 1
     assert unknown.acceptance_passed is False
     assert "unknown_tool_attempt" in unknown.failure_reasons
+
+
+def test_tool_loop_model_service_error_is_captured_per_case() -> None:
+    class ToolFailureModel:
+        call_count = 0
+
+        def complete(self, messages: object, **_: object) -> ChatCompletionResult:
+            self.call_count += 1
+            if self.call_count == 1:
+                return response(
+                    content=json.dumps(
+                        {
+                            "decision": "ACTION_REQUIRED",
+                            "reason": "synthetic",
+                            "confidence": 1.0,
+                        }
+                    )
+                )
+            raise ModelInvalidRequestError("synthetic provider rejection")
+
+    result = PilotEvaluationRunnerV1(bundle(), ToolFailureModel()).run().results[0]
+
+    assert result.status == "model_invocation_infrastructure_failure"
+    assert result.error_class == "ModelInvalidRequestError"
+    assert result.acceptance_passed is False
 
 
 def test_approval_gate_blocks_before_the_model_is_called() -> None:
@@ -345,7 +384,7 @@ def _proposal_case(tool_name: str) -> EvaluationCaseV1:
             "schema_version": "1.0",
             "dataset_version": "deepseek-validation-v1",
             "case_id": f"{tool_name}-case",
-            "category": "task",
+            "category": "ordinary" if tool_name == "save_reply_draft" else "task",
             "subcategory": "proposal",
             "language": "en",
             "current_time": "2026-07-26T09:00:00+08:00",

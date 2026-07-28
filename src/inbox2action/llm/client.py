@@ -75,8 +75,10 @@ class OpenAIChatClient:
             request["response_format"] = dict(response_format)
         if tools is not None:
             request["tools"] = [dict(tool) for tool in tools]
-        if self._settings.llm_thinking_mode == "enabled":
-            request["extra_body"] = {"thinking": {"type": "enabled"}}
+            request["tool_choice"] = "required"
+        request["extra_body"] = {
+            "thinking": {"type": self._settings.llm_thinking_mode}
+        }
 
         try:
             response = self._sdk_client.chat.completions.create(**request)

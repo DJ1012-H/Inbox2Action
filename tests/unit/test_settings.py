@@ -13,8 +13,8 @@ def make_settings(**overrides: object) -> Settings:
         "llm_base_url": "https://api.deepseek.com",
         "llm_model_name": "deepseek-v4-flash",
         "llm_thinking_mode": "disabled",
-        "llm_timeout_seconds": 30,
-        "llm_max_retries": 0,
+        "llm_timeout_seconds": 120,
+        "llm_max_retries": 1,
         "llm_max_tokens": 2048,
         "llm_max_tool_steps": 6,
         "run_deepseek_integration_tests": False,
@@ -28,7 +28,7 @@ def test_defaults_disable_network_and_mask_key() -> None:
 
     assert settings.llm_enabled is False
     assert settings.llm_model_name == "deepseek-v4-flash"
-    assert settings.llm_max_retries == 0
+    assert settings.llm_max_retries == 1
     assert settings.api_key_configured is True
     assert "placeholder-value-only" not in repr(settings)
 

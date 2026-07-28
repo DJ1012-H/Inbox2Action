@@ -35,6 +35,14 @@ def test_registry_exposes_only_the_explicit_safe_tools() -> None:
     }
 
 
+def test_registry_can_hide_tools_without_runtime_support() -> None:
+    registry = ToolRegistry(enabled_tool_names={"save_task_proposal", "done"})
+
+    assert registry.openai_tool_names() == ("save_task_proposal", "done")
+    with pytest.raises(UnknownToolError):
+        registry.validate_call(call("get_current_time", "{}"))
+
+
 def test_validated_call_is_required_before_execution() -> None:
     registry = ToolRegistry()
 

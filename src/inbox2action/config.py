@@ -33,13 +33,13 @@ class Settings(BaseSettings):
         validation_alias="LLM_THINKING_MODE",
     )
     llm_timeout_seconds: float = Field(
-        30.0,
+        120.0,
         gt=0,
         le=120,
         validation_alias="LLM_TIMEOUT_SECONDS",
     )
     llm_max_retries: int = Field(
-        0,
+        1,
         ge=0,
         le=3,
         validation_alias="LLM_MAX_RETRIES",

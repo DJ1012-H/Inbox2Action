@@ -26,6 +26,7 @@ from inbox2action.evaluation.deepseek_pilot import (
     validate_live_pilot_settings,
 )
 from inbox2action.evaluation.runner_v1 import (
+    PROMPT_VERSION,
     PilotEvaluationRunnerV1,
     PilotEvaluationRunV1,
     write_pilot_evaluation_run,
@@ -48,6 +49,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--case-id", action="append", default=[])
     parser.add_argument("--failure-mode", choices=("continue",), default="continue")
+    parser.add_argument("--timeout-seconds", type=float, default=120.0)
+    parser.add_argument("--max-retries", type=int, choices=range(4), default=1)
     return parser.parse_args()
 
 
@@ -69,6 +72,14 @@ def main() -> int:
         )
         settings = Settings()
         validate_live_pilot_settings(settings)
+        if not 0 < args.timeout_seconds <= 120:
+            raise ValueError("timeout-seconds must be between 0 and 120")
+        settings = settings.model_copy(
+            update={
+                "llm_timeout_seconds": args.timeout_seconds,
+                "llm_max_retries": args.max_retries,
+            }
+        )
     except LivePilotRequestError as exc:
         print(f"deepseek_pilot_refused: {exc}", file=sys.stderr)
         return 2
@@ -88,8 +99,10 @@ def main() -> int:
                 "base_url_hostname": urlsplit(settings.llm_base_url).hostname,
                 "case_ids": list(case_ids),
                 "model": settings.llm_model_name,
-                "prompt_version": "pilot-evaluation-v1",
+                "max_retries": settings.llm_max_retries,
+                "prompt_version": PROMPT_VERSION,
                 "thinking_mode": settings.llm_thinking_mode,
+                "timeout_seconds": settings.llm_timeout_seconds,
             },
             ensure_ascii=False,
             sort_keys=True,

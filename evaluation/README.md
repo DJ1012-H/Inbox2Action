@@ -97,6 +97,11 @@ uv run python scripts/run_deepseek_pilot.py `
   --failure-mode continue
 ```
 
+The Pilot CLI uses explicit run-local safety defaults of `--timeout-seconds
+120` and `--max-retries 1`; these do not modify `.env`. Both values are printed
+in the safe preflight metadata and can be overridden within the validated
+configuration bounds.
+
 Before constructing the DeepSeek client, the command validates the formal
 approved bundle and checks only whether `LLM_ENABLED`, `LLM_API_KEY`,
 `LLM_MODEL_NAME`, and `LLM_BASE_URL` are present. Missing configuration is
