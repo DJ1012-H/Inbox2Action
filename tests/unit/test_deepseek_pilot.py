@@ -18,9 +18,12 @@ from inbox2action.evaluation.asset_bundle import (
 from inbox2action.evaluation.assets import ReviewStatus
 from inbox2action.evaluation.deepseek_pilot import (
     PILOT_BASELINE_CASE_IDS,
+    PILOT_HOLDOUT_CASE_IDS,
     LivePilotConfigurationError,
     LivePilotRequestError,
+    holdout_pilot_decision,
     redacted_pilot_summary,
+    render_deepseek_holdout_summary,
     render_deepseek_pilot_summary,
     validate_live_pilot_request,
     validate_live_pilot_settings,
@@ -60,6 +63,17 @@ def _live_command(*case_ids: str) -> list[str]:
     return command
 
 
+def _holdout_command() -> list[str]:
+    return [
+        sys.executable,
+        str(SCRIPT),
+        "--live-model",
+        "--confirm-api-cost",
+        "--suite",
+        "holdout10",
+    ]
+
+
 def test_live_pilot_requires_both_explicit_authorization_flags() -> None:
     with pytest.raises(LivePilotRequestError):
         validate_live_pilot_request(
@@ -93,6 +107,39 @@ def test_live_pilot_accepts_only_the_fixed_five_case_baseline() -> None:
             confirm_api_cost=True,
             case_ids=(*PILOT_BASELINE_CASE_IDS, "ordinary_advertisement_001"),
             failure_mode="continue",
+        )
+
+
+def test_live_pilot_accepts_only_the_fixed_ten_case_holdout() -> None:
+    assert PILOT_HOLDOUT_CASE_IDS == (
+        "ordinary_advertisement_001",
+        "ordinary_build_notification_001",
+        "task_explicit_deadline_001",
+        "task_missing_deadline_001",
+        "calendar_explicit_time_001",
+        "calendar_ambiguous_time_001",
+        "multi_reply_task_001",
+        "multi_reply_calendar_001",
+        "injection_secret_send_001",
+        "injection_loop_bypass_001",
+    )
+    assert (
+        validate_live_pilot_request(
+            live_model=True,
+            confirm_api_cost=True,
+            case_ids=(),
+            failure_mode="continue",
+            suite="holdout10",
+        )
+        == PILOT_HOLDOUT_CASE_IDS
+    )
+    with pytest.raises(LivePilotRequestError):
+        validate_live_pilot_request(
+            live_model=True,
+            confirm_api_cost=True,
+            case_ids=("ordinary_advertisement_001",),
+            failure_mode="continue",
+            suite="holdout10",
         )
 
 
@@ -143,6 +190,21 @@ def test_cli_reports_only_missing_configuration_name() -> None:
     assert "Authorization" not in result.stderr
 
 
+def test_cli_accepts_holdout_suite_before_model_configuration() -> None:
+    environment = os.environ.copy()
+    environment.update({"LLM_ENABLED": "true", "LLM_API_KEY": ""})
+    result = subprocess.run(
+        _holdout_command(),
+        check=False,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+    assert result.returncode == 2
+    assert "LLM_API_KEY" in result.stderr
+    assert "holdout10" not in result.stderr
+
+
 def test_evidence_is_redacted_and_covers_the_required_result_fields() -> None:
     run = PilotEvaluationRunV1(
         mode="injected_model",
@@ -172,6 +234,72 @@ def test_evidence_is_redacted_and_covers_the_required_result_fields() -> None:
     assert "reasoning_content" in evidence
     assert "sensitive-email-body" not in evidence
     assert "complete-observation-payload" not in evidence
+
+
+def test_holdout_evidence_separates_dataset_roles_and_applies_fixed_decision() -> None:
+    results = [
+        PilotCaseRunResultV1(
+            case_id=case_id,
+            mode="injected_model",
+            status="completed",
+            triage_correct=True,
+            tool_selection_correct=True,
+            tool_sequence_correct=True,
+            arguments_valid=True,
+            fixture_resolution_passed=True,
+            safety_passed=True,
+            acceptance_passed=index < 8,
+            external_side_effects=0,
+            unknown_tool_executions=0,
+            loop_exceeded=False,
+            total_tokens=12,
+            elapsed_ms=34.5,
+        )
+        for index, case_id in enumerate(PILOT_HOLDOUT_CASE_IDS)
+    ]
+    run = PilotEvaluationRunV1(mode="injected_model", results=results)
+
+    evidence = render_deepseek_holdout_summary(
+        run, _settings(), run_date=date(2026, 7, 28)
+    )
+
+    assert holdout_pilot_decision(run) == "PASS"
+    assert "used during Prompt and runtime-contract diagnosis and tuning" in evidence
+    assert "not used to adjust the current Prompt before this first run" in evidence
+    assert "holdout_accepted_count: `8/10`" in evidence
+    assert "measured_case_count: `10/10`" in evidence
+    assert "pilot_decision: `PASS`" in evidence
+    assert "failure_reasons" in evidence
+    assert "email bodies" in evidence
+    assert "sensitive-email-body" not in evidence
+
+
+def test_holdout_decision_fails_closed_on_a_safety_hard_failure() -> None:
+    results = [
+        PilotCaseRunResultV1(
+            case_id=case_id,
+            mode="injected_model",
+            status="completed",
+            triage_correct=True,
+            tool_selection_correct=True,
+            tool_sequence_correct=True,
+            arguments_valid=True,
+            fixture_resolution_passed=True,
+            safety_passed=index != 0,
+            acceptance_passed=index != 0,
+            external_side_effects=1 if index == 0 else 0,
+            unknown_tool_executions=0,
+            loop_exceeded=False,
+        )
+        for index, case_id in enumerate(PILOT_HOLDOUT_CASE_IDS)
+    ]
+
+    assert (
+        holdout_pilot_decision(
+            PilotEvaluationRunV1(mode="injected_model", results=results)
+        )
+        == "FAIL"
+    )
 
 
 def test_timeout_is_a_model_invocation_failure_not_an_invalid_triage() -> None:

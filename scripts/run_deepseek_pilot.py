@@ -1,4 +1,4 @@
-"""Run one explicitly authorized, five-case DeepSeek Pilot baseline."""
+"""Run one explicitly authorized DeepSeek Pilot suite."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ from inbox2action.evaluation.deepseek_pilot import (
     LivePilotConfigurationError,
     LivePilotRequestError,
     redacted_pilot_summary,
+    render_deepseek_holdout_summary,
     render_deepseek_pilot_summary,
     validate_live_pilot_request,
     validate_live_pilot_settings,
@@ -34,8 +35,21 @@ from inbox2action.evaluation.runner_v1 import (
 from inbox2action.llm.client import OpenAIChatClient
 
 PROJECT_ROOT = Path(__file__).parents[1]
-RESULT_PATH = PROJECT_ROOT / "evaluation" / "results" / "deepseek-pilot-v1-run.json"
-EVIDENCE_PATH = PROJECT_ROOT / "evidence" / "stage-2" / "deepseek-pilot-v1-summary.md"
+DEVELOPMENT_RESULT_PATH = (
+    PROJECT_ROOT / "evaluation" / "results" / "deepseek-pilot-v1-run.json"
+)
+DEVELOPMENT_EVIDENCE_PATH = (
+    PROJECT_ROOT / "evidence" / "stage-2" / "deepseek-pilot-v1-summary.md"
+)
+HOLDOUT_RESULT_PATH = (
+    PROJECT_ROOT / "evaluation" / "results" / "deepseek-pilot-v1-holdout10-run.json"
+)
+HOLDOUT_EVIDENCE_PATH = (
+    PROJECT_ROOT
+    / "evidence"
+    / "stage-2"
+    / "deepseek-pilot-v1-holdout10-summary.md"
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -48,6 +62,11 @@ def parse_args() -> argparse.Namespace:
         help="Regenerate only the redacted evidence from the existing result file.",
     )
     parser.add_argument("--case-id", action="append", default=[])
+    parser.add_argument(
+        "--suite",
+        choices=("development5", "holdout10"),
+        default="development5",
+    )
     parser.add_argument("--failure-mode", choices=("continue",), default="continue")
     parser.add_argument("--timeout-seconds", type=float, default=120.0)
     parser.add_argument("--max-retries", type=int, choices=range(4), default=1)
@@ -57,13 +76,14 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     if args.render_existing_result:
-        return _render_existing_result()
+        return _render_existing_result(args.suite)
     try:
         case_ids = validate_live_pilot_request(
             live_model=args.live_model,
             confirm_api_cost=args.confirm_api_cost,
             case_ids=args.case_id,
             failure_mode=args.failure_mode,
+            suite=args.suite,
         )
         bundle = load_evaluation_asset_bundle(PROJECT_ROOT / "evaluation")
         validate_evaluation_asset_bundle(bundle, require_approved_reviews=True)
@@ -109,6 +129,7 @@ def main() -> int:
         )
     )
     try:
+        result_path, evidence_path = _suite_paths(args.suite)
         run = PilotEvaluationRunnerV1(
             bundle,
             OpenAIChatClient(settings),
@@ -116,14 +137,10 @@ def main() -> int:
             require_approved_reviews=True,
             failure_mode="continue",
         ).run(case_ids=case_ids)
-        write_pilot_evaluation_run(run, RESULT_PATH, project_root=PROJECT_ROOT)
-        EVIDENCE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        EVIDENCE_PATH.write_text(
-            render_deepseek_pilot_summary(
-                run,
-                settings,
-                run_date=datetime.now(UTC).date(),
-            ),
+        write_pilot_evaluation_run(run, result_path, project_root=PROJECT_ROOT)
+        evidence_path.parent.mkdir(parents=True, exist_ok=True)
+        evidence_path.write_text(
+            _render_summary(args.suite, run, settings),
             encoding="utf-8",
         )
     except (OSError, ValueError) as exc:
@@ -134,21 +151,18 @@ def main() -> int:
     return 0
 
 
-def _render_existing_result() -> int:
+def _render_existing_result(suite: str) -> int:
     """Write only redacted evidence from the persisted result; never build a client."""
 
     try:
+        result_path, evidence_path = _suite_paths(suite)
         run = PilotEvaluationRunV1.model_validate_json(
-            RESULT_PATH.read_text(encoding="utf-8")
+            result_path.read_text(encoding="utf-8")
         )
         settings = Settings()
-        EVIDENCE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        EVIDENCE_PATH.write_text(
-            render_deepseek_pilot_summary(
-                run,
-                settings,
-                run_date=datetime.now(UTC).date(),
-            ),
+        evidence_path.parent.mkdir(parents=True, exist_ok=True)
+        evidence_path.write_text(
+            _render_summary(suite, run, settings),
             encoding="utf-8",
         )
     except (OSError, ValidationError, ValueError) as exc:
@@ -156,6 +170,31 @@ def _render_existing_result() -> int:
         return 1
     print(json.dumps(redacted_pilot_summary(run), ensure_ascii=False, sort_keys=True))
     return 0
+
+
+def _suite_paths(suite: str) -> tuple[Path, Path]:
+    if suite == "holdout10":
+        return HOLDOUT_RESULT_PATH, HOLDOUT_EVIDENCE_PATH
+    return DEVELOPMENT_RESULT_PATH, DEVELOPMENT_EVIDENCE_PATH
+
+
+def _render_summary(
+    suite: str,
+    run: PilotEvaluationRunV1,
+    settings: Settings,
+) -> str:
+    run_date = datetime.now(UTC).date()
+    if suite == "holdout10":
+        return render_deepseek_holdout_summary(
+            run,
+            settings,
+            run_date=run_date,
+        )
+    return render_deepseek_pilot_summary(
+        run,
+        settings,
+        run_date=run_date,
+    )
 
 
 def _validate_selected_case_ids(

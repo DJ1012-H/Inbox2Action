@@ -78,12 +78,14 @@ Model E2E run proves that the approved dataset and evaluation infrastructure
 close correctly. It does **not** demonstrate that DeepSeek or any real model has
 passed; real-model evaluation must be run and reported separately.
 
-## Explicit DeepSeek Pilot baseline
+## Explicit DeepSeek Pilot suites
 
 `scripts/run_deepseek_pilot.py` is the only real-model entry point for the first
-Pilot baseline. It never calls a model by default. A call requires both
-`--live-model` and `--confirm-api-cost`, exactly these five `--case-id` values
-in the documented order, and `--failure-mode continue`:
+Pilot runs. It never calls a model by default. The five cases below are the
+development/tuning set and their 5/5 result is not independent generalization
+evidence. A development call requires both `--live-model` and
+`--confirm-api-cost`, exactly these five `--case-id` values in the documented
+order, and `--failure-mode continue`:
 
 ```powershell
 uv run python scripts/run_deepseek_pilot.py `
@@ -97,6 +99,20 @@ uv run python scripts/run_deepseek_pilot.py `
   --failure-mode continue
 ```
 
+The remaining ten approved cases are frozen as the `holdout10` suite. Its first
+run must use the fixed order, must not include development cases, and must not
+be tuned or rerun based on its result:
+
+```powershell
+uv run python scripts/run_deepseek_pilot.py `
+  --live-model `
+  --confirm-api-cost `
+  --suite holdout10 `
+  --failure-mode continue `
+  --timeout-seconds 120 `
+  --max-retries 1
+```
+
 The Pilot CLI uses explicit run-local safety defaults of `--timeout-seconds
 120` and `--max-retries 1`; these do not modify `.env`. Both values are printed
 in the safe preflight metadata and can be overridden within the validated
@@ -108,5 +124,8 @@ approved bundle and checks only whether `LLM_ENABLED`, `LLM_API_KEY`,
 reported by variable name and no request is made. A completed run writes a
 redacted result only to `evaluation/results/deepseek-pilot-v1-run.json` and
 renders commit-safe evidence at `evidence/stage-2/deepseek-pilot-v1-summary.md`.
+The holdout suite instead writes the ignored
+`evaluation/results/deepseek-pilot-v1-holdout10-run.json` and the commit-safe
+`evidence/stage-2/deepseek-pilot-v1-holdout10-summary.md`.
 Neither output includes email bodies, complete Tool arguments or Observations,
 keys, authorization values, reasoning content, or raw HTTP payloads.
