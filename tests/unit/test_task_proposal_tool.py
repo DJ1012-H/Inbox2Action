@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from inbox2action.evaluation.asset_bundle import EvaluationAssetBundleV1
-from inbox2action.evaluation.assets import EvaluationCaseV1, ToolFixtureV1
+from inbox2action.evaluation.assets import EvaluationCaseV1
 from inbox2action.evaluation.fixture_matcher import ToolFixtureMatcherV1
 from inbox2action.evaluation.fixture_runtime import FixtureBackedToolRuntimeV1
 from inbox2action.llm.models import ToolCall
@@ -91,7 +91,7 @@ def test_invalid_task_proposal_never_executes_runtime() -> None:
     assert runtime.task_proposals == []
 
 
-def test_fixture_runtime_matches_task_proposal_arguments_exactly() -> None:
+def test_fixture_runtime_creates_task_proposal_without_a_fixture() -> None:
     case = EvaluationCaseV1.model_validate(
         {
             "schema_version": "1.0",
@@ -112,40 +112,21 @@ def test_fixture_runtime_matches_task_proposal_arguments_exactly() -> None:
                 "argument_assertions": {"save_task_proposal": {"title": "task title"}},
                 "safety": {},
             },
-            "tool_fixture_ids": ["fixture-task-proposal-001"],
-        }
-    )
-    fixture = ToolFixtureV1.model_validate(
-        {
-            "schema_version": "1.0",
-            "dataset_version": "deepseek-validation-v1",
-            "fixture_id": "fixture-task-proposal-001",
-            "case_id": case.case_id,
-            "tool_name": "save_task_proposal",
-            "arguments_match": {
-                "title": "task title",
-                "description": "task description",
-                "due_at": "2026-07-30T18:00:00+08:00",
-                "priority": "high",
-            },
-            "observation": {
-                "tool_name": "save_task_proposal",
-                "observation_type": "task_proposal",
-                "status": "proposal_created",
-                "data": {"saved": True, "proposal_type": "task", "external_side_effect": False},
-            },
+            "tool_fixture_ids": [],
         }
     )
     runtime = FixtureBackedToolRuntimeV1(
         case,
-        ToolFixtureMatcherV1(EvaluationAssetBundleV1(cases=(case,), fixtures=(fixture,), reviews=())),
+        ToolFixtureMatcherV1(
+            EvaluationAssetBundleV1(cases=(case,), fixtures=(), reviews=())
+        ),
     )
 
     observation = runtime.save_task_proposal(
         SaveTaskProposalArgs.model_validate(
             {
                 "title": "task title",
-                "description": "task description",
+                "description": "a different but valid task description",
                 "due_at": "2026-07-30T18:00:00+08:00",
                 "priority": "high",
             }
@@ -153,4 +134,6 @@ def test_fixture_runtime_matches_task_proposal_arguments_exactly() -> None:
     )
 
     assert observation.data["external_side_effect"] is False
-    assert runtime.events[-1].fixture_id == fixture.fixture_id
+    assert observation.data["unauthorized_write"] is False
+    assert runtime.events[-1].fixture_id is None
+    assert runtime.events[-1].outcome == "local_proposal"

@@ -14,9 +14,14 @@ from inbox2action.evaluation.fixture_matcher import (
     ToolFixtureMatcherV1,
     ToolFixtureNotFoundError,
 )
-from inbox2action.tools.mock_tools import DraftProposal, ToolObservation
+from inbox2action.tools.mock_tools import DraftProposal, TaskProposal, ToolObservation
 from inbox2action.tools.policy import ToolError
-from inbox2action.tools.schemas import AskUserArgs, DoneArgs
+from inbox2action.tools.schemas import (
+    AskUserArgs,
+    DoneArgs,
+    SaveReplyDraftArgs,
+    SaveTaskProposalArgs,
+)
 
 
 class FixtureRuntimeError(ToolError):
@@ -39,19 +44,21 @@ class FixtureToolEventV1:
     fixture_id: str | None
     outcome: str
     blocked_reason: str | None
+    observation_status: str | None
     external_side_effect: int | None
     unauthorized_write: int | None
-    unknown_tool_attempt: bool
+    unknown_tool_execution: bool
 
 
 @dataclass
 class FixtureBackedToolRuntimeV1:
-    """Serve only exact fixture observations and never access external systems."""
+    """Serve exact read observations and local-only proposal confirmations."""
 
     case: EvaluationCaseV1
     matcher: ToolFixtureMatcherV1
     events: list[FixtureToolEventV1] = field(default_factory=list)
     proposals: list[DraftProposal] = field(default_factory=list)
+    task_proposals: list[TaskProposal] = field(default_factory=list)
 
     def get_current_time(self, arguments: BaseModel) -> ToolObservation:
         observation = self._fixture_observation("get_current_time", arguments)
@@ -65,14 +72,73 @@ class FixtureBackedToolRuntimeV1:
     def check_calendar_availability(self, arguments: BaseModel) -> ToolObservation:
         return self._fixture_observation("check_calendar_availability", arguments)
 
-    def save_reply_draft(self, arguments: BaseModel) -> ToolObservation:
-        return self._fixture_observation("save_reply_draft", arguments)
+    def save_reply_draft(self, arguments: SaveReplyDraftArgs) -> ToolObservation:
+        proposal_id = f"reply-proposal-{len(self.proposals) + 1}"
+        self.proposals.append(
+            DraftProposal(
+                proposal_id=proposal_id,
+                recipient=arguments.recipient,
+                subject=arguments.subject,
+                body=arguments.body,
+            )
+        )
+        self._record(
+            arguments,
+            "save_reply_draft",
+            None,
+            "local_proposal",
+            None,
+            "proposal_created",
+        )
+        return ToolObservation(
+            tool_name="save_reply_draft",
+            observation_type="reply_draft_proposal",
+            status="proposal_created",
+            data={
+                "saved": True,
+                "proposal_id": proposal_id,
+                "proposal_type": "reply_draft",
+                "external_side_effect": False,
+                "unauthorized_write": False,
+            },
+        )
 
-    def save_task_proposal(self, arguments: BaseModel) -> ToolObservation:
-        return self._fixture_observation("save_task_proposal", arguments)
+    def save_task_proposal(self, arguments: SaveTaskProposalArgs) -> ToolObservation:
+        proposal_id = f"task-proposal-{len(self.task_proposals) + 1}"
+        self.task_proposals.append(
+            TaskProposal(
+                proposal_id=proposal_id,
+                title=arguments.title,
+                description=arguments.description,
+                due_at=arguments.due_at,
+                priority=arguments.priority,
+            )
+        )
+        self._record(
+            arguments,
+            "save_task_proposal",
+            None,
+            "local_proposal",
+            None,
+            "proposal_created",
+        )
+        return ToolObservation(
+            tool_name="save_task_proposal",
+            observation_type="task_proposal",
+            status="proposal_created",
+            data={
+                "saved": True,
+                "proposal_id": proposal_id,
+                "proposal_type": "task",
+                "external_side_effect": False,
+                "unauthorized_write": False,
+            },
+        )
 
     def ask_user(self, arguments: AskUserArgs) -> ToolObservation:
-        self._record(arguments, "ask_user", None, "control", None)
+        self._record(
+            arguments, "ask_user", None, "control", None, "waiting_for_user"
+        )
         return ToolObservation(
             tool_name="ask_user",
             observation_type="user_question",
@@ -81,7 +147,7 @@ class FixtureBackedToolRuntimeV1:
         )
 
     def done(self, arguments: DoneArgs) -> ToolObservation:
-        self._record(arguments, "done", None, "control", None)
+        self._record(arguments, "done", None, "control", None, "complete")
         return ToolObservation(
             tool_name="done",
             observation_type="done",
@@ -98,14 +164,27 @@ class FixtureBackedToolRuntimeV1:
                 arguments=payload,
             )
         except ToolFixtureNotFoundError as exc:
-            self._record(arguments, tool_name, None, "blocked", "fixture_not_found")
+            self._record(
+                arguments,
+                tool_name,
+                None,
+                "blocked",
+                "fixture_not_found",
+                None,
+            )
             raise FixtureNotFoundRuntimeError("fixture_not_found") from exc
         except ToolFixtureAmbiguousError as exc:
-            self._record(arguments, tool_name, None, "blocked", "fixture_ambiguous")
+            self._record(
+                arguments,
+                tool_name,
+                None,
+                "blocked",
+                "fixture_ambiguous",
+                None,
+            )
             raise FixtureAmbiguousRuntimeError("fixture_ambiguous") from exc
-        self._record(arguments, tool_name, fixture.fixture_id, "matched", None)
         try:
-            return ToolObservation.model_validate(
+            observation = ToolObservation.model_validate(
                 self.matcher.get_observation(
                     case_id=self.case.case_id,
                     tool_name=tool_name,
@@ -114,6 +193,15 @@ class FixtureBackedToolRuntimeV1:
             )
         except Exception as exc:
             raise FixtureRuntimeError("fixture_observation_invalid") from exc
+        self._record(
+            arguments,
+            tool_name,
+            fixture.fixture_id,
+            "matched",
+            None,
+            observation.status,
+        )
+        return observation
 
     def _record(
         self,
@@ -122,6 +210,7 @@ class FixtureBackedToolRuntimeV1:
         fixture_id: str | None,
         outcome: str,
         blocked_reason: str | None,
+        observation_status: str | None,
     ) -> None:
         payload = arguments.model_dump(mode="json")
         digest = hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
@@ -133,8 +222,9 @@ class FixtureBackedToolRuntimeV1:
                 fixture_id=fixture_id,
                 outcome=outcome,
                 blocked_reason=blocked_reason,
+                observation_status=observation_status,
                 external_side_effect=0,
                 unauthorized_write=0,
-                unknown_tool_attempt=False,
+                unknown_tool_execution=False,
             )
         )

@@ -9,7 +9,11 @@ from inbox2action.evaluation.fixture_runtime import (
     FixtureBackedToolRuntimeV1,
     FixtureNotFoundRuntimeError,
 )
-from inbox2action.tools.schemas import NoArguments
+from inbox2action.tools.schemas import (
+    CheckCalendarAvailabilityArgs,
+    NoArguments,
+    SaveReplyDraftArgs,
+)
 
 
 def case() -> EvaluationCaseV1:
@@ -62,3 +66,39 @@ def test_runtime_fails_closed_when_a_fixture_is_missing() -> None:
     with pytest.raises(FixtureNotFoundRuntimeError):
         missing.get_current_time(NoArguments())
     assert missing.events[0].blocked_reason == "fixture_not_found"
+
+
+def test_calendar_observation_still_requires_an_exact_fixture() -> None:
+    missing_case = case().model_copy(update={"tool_fixture_ids": []})
+    bundle = EvaluationAssetBundleV1(cases=(missing_case,), fixtures=(), reviews=())
+    missing = FixtureBackedToolRuntimeV1(
+        missing_case, ToolFixtureMatcherV1(bundle)
+    )
+
+    with pytest.raises(FixtureNotFoundRuntimeError):
+        missing.check_calendar_availability(
+            CheckCalendarAvailabilityArgs.model_validate(
+                {
+                    "start": "2026-07-29T10:00:00+08:00",
+                    "end": "2026-07-29T11:00:00+08:00",
+                    "timezone": "Asia/Shanghai",
+                }
+            )
+        )
+
+
+def test_reply_proposal_is_local_and_does_not_require_a_fixture() -> None:
+    local = runtime()
+    observation = local.save_reply_draft(
+        SaveReplyDraftArgs(
+            recipient="sender@example.com",
+            subject="Re: Synthetic",
+            body="A valid alternative reply body.",
+        )
+    )
+
+    assert observation.status == "proposal_created"
+    assert observation.data["external_side_effect"] is False
+    assert observation.data["unauthorized_write"] is False
+    assert local.events[-1].fixture_id is None
+    assert local.events[-1].argument_keys == ("body", "recipient", "subject")

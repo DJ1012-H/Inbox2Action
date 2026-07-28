@@ -30,6 +30,9 @@ _CATEGORY_FILENAMES: Final = (
 )
 _SCHEMA_VERSION: Final = "1.0"
 _DATASET_VERSION: Final = "deepseek-validation-v1"
+_FIXTURE_OBSERVATION_TOOLS: Final = frozenset(
+    {"get_current_time", "check_calendar_availability"}
+)
 
 
 class EvaluationAssetConsistencyError(ValueError):
@@ -84,6 +87,7 @@ def validate_evaluation_asset_bundle(
         bundle.fixtures, "fixture_id", "duplicate_fixture_id"
     )
     _validate_fixture_references(bundle, cases_by_id, fixtures_by_id)
+    _validate_observation_fixture_coverage(bundle)
     _validate_reviews(bundle, cases_by_id)
     _validate_fixture_match_keys(bundle.fixtures)
     if require_approved_reviews:
@@ -184,6 +188,15 @@ def _validate_reviews(
         if review.case_id not in cases_by_id:
             raise EvaluationAssetConsistencyError(
                 f"review_unknown_case: case_id={review.case_id}"
+            )
+
+
+def _validate_observation_fixture_coverage(bundle: EvaluationAssetBundleV1) -> None:
+    for fixture in bundle.fixtures:
+        if fixture.tool_name not in _FIXTURE_OBSERVATION_TOOLS:
+            raise EvaluationAssetConsistencyError(
+                f"fixture_not_observation_tool: fixture_id={fixture.fixture_id}; "
+                f"tool_name={fixture.tool_name}"
             )
 
 
