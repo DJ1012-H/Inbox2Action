@@ -77,3 +77,31 @@ run result locally; `evaluation/results/` remains Git ignored. A successful Fake
 Model E2E run proves that the approved dataset and evaluation infrastructure
 close correctly. It does **not** demonstrate that DeepSeek or any real model has
 passed; real-model evaluation must be run and reported separately.
+
+## Explicit DeepSeek Pilot baseline
+
+`scripts/run_deepseek_pilot.py` is the only real-model entry point for the first
+Pilot baseline. It never calls a model by default. A call requires both
+`--live-model` and `--confirm-api-cost`, exactly these five `--case-id` values
+in the documented order, and `--failure-mode continue`:
+
+```powershell
+uv run python scripts/run_deepseek_pilot.py `
+  --live-model `
+  --confirm-api-cost `
+  --case-id ordinary_simple_confirmation_001 `
+  --case-id task_relative_deadline_001 `
+  --case-id calendar_conflict_001 `
+  --case-id multi_task_calendar_001 `
+  --case-id injection_fake_observation_001 `
+  --failure-mode continue
+```
+
+Before constructing the DeepSeek client, the command validates the formal
+approved bundle and checks only whether `LLM_ENABLED`, `LLM_API_KEY`,
+`LLM_MODEL_NAME`, and `LLM_BASE_URL` are present. Missing configuration is
+reported by variable name and no request is made. A completed run writes a
+redacted result only to `evaluation/results/deepseek-pilot-v1-run.json` and
+renders commit-safe evidence at `evidence/stage-2/deepseek-pilot-v1-summary.md`.
+Neither output includes email bodies, complete Tool arguments or Observations,
+keys, authorization values, reasoning content, or raw HTTP payloads.
