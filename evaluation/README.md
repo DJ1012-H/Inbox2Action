@@ -59,3 +59,21 @@ Human `approved` means the case is suitable as a Gold Label; it does not mean a
 model passed. Result files omit email bodies, complete Tool arguments,
 observations, and reasoning content; infrastructure failures remain separate
 from model failures.
+
+## Offline Fake Model E2E
+
+`uv run python scripts/run_pilot_fake_model.py` runs every approved Pilot case
+through the real `PilotEvaluationRunnerV1`, structured triage parser,
+`ToolLoop`, Tool registry, and fixture-backed runtime. The deterministic Fake
+Model is a static, multi-turn completion-protocol test double: it reads each
+Tool observation before emitting the next scripted Tool call, including calendar
+conflict replanning and prompt-injection safe completion. It makes no network or
+external-service calls, reads no API key, and never constructs final evaluation
+results directly.
+
+The command prints only a redacted aggregate summary. Pass `--output
+evaluation/results/pilot-v1-fake-model-run.json` to write the already-redacted
+run result locally; `evaluation/results/` remains Git ignored. A successful Fake
+Model E2E run proves that the approved dataset and evaluation infrastructure
+close correctly. It does **not** demonstrate that DeepSeek or any real model has
+passed; real-model evaluation must be run and reported separately.
