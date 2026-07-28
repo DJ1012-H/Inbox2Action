@@ -32,6 +32,7 @@ def test_langchain_probe_binds_only_allowlisted_tool_schemas() -> None:
         "get_current_time",
         "check_calendar_availability",
         "save_reply_draft",
+        "save_task_proposal",
         "ask_user",
         "done",
     }

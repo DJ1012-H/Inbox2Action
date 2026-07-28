@@ -114,9 +114,10 @@ def test_valid_loop_passes_tools_and_finishes_with_done() -> None:
         if isinstance(tool["function"], dict)
     } == {
         "get_current_time",
-        "check_calendar_availability",
-        "save_reply_draft",
-        "ask_user",
+            "check_calendar_availability",
+            "save_reply_draft",
+            "save_task_proposal",
+            "ask_user",
         "done",
     }
 

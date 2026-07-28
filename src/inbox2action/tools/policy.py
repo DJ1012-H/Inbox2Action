@@ -10,6 +10,7 @@ ALLOWED_TOOL_NAMES = frozenset(
         "get_current_time",
         "check_calendar_availability",
         "save_reply_draft",
+        "save_task_proposal",
         "ask_user",
         "done",
     }
@@ -67,6 +68,13 @@ def trace_arguments(name: str, arguments: BaseModel) -> Mapping[str, object]:
             "recipient_present": bool(payload.get("recipient")),
             "subject_length": len(str(payload.get("subject", ""))),
             "body_length": len(str(payload.get("body", ""))),
+        }
+    if name == "save_task_proposal":
+        return {
+            "title_length": len(str(payload.get("title", ""))),
+            "description_length": len(str(payload.get("description", ""))),
+            "due_at_present": payload.get("due_at") is not None,
+            "priority": payload.get("priority"),
         }
     if name in {"ask_user", "done"}:
         text = payload.get("question", payload.get("summary", ""))

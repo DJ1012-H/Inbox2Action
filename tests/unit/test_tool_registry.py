@@ -18,7 +18,7 @@ def call(name: str, arguments: str, call_id: str = "call-1") -> ToolCall:
     return ToolCall(id=call_id, name=name, arguments=arguments)
 
 
-def test_registry_exposes_only_the_five_allowlisted_tools() -> None:
+def test_registry_exposes_only_the_explicit_safe_tools() -> None:
     names = {
         tool["function"]["name"]
         for tool in ToolRegistry().openai_tools()
@@ -29,6 +29,7 @@ def test_registry_exposes_only_the_five_allowlisted_tools() -> None:
         "get_current_time",
         "check_calendar_availability",
         "save_reply_draft",
+        "save_task_proposal",
         "ask_user",
         "done",
     }

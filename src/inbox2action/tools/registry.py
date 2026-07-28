@@ -25,6 +25,7 @@ from inbox2action.tools.schemas import (
     DoneArgs,
     NoArguments,
     SaveReplyDraftArgs,
+    SaveTaskProposalArgs,
 )
 
 ToolHandler = Callable[[BaseModel], object]
@@ -63,6 +64,7 @@ class ToolRegistry:
                 self.runtime.check_calendar_availability,
             ),
             "save_reply_draft": cast(ToolHandler, self.runtime.save_reply_draft),
+            "save_task_proposal": cast(ToolHandler, self.runtime.save_task_proposal),
             "ask_user": cast(ToolHandler, self.runtime.ask_user),
             "done": cast(ToolHandler, self.runtime.done),
         }
@@ -89,6 +91,12 @@ class ToolRegistry:
                 description="Create an in-memory reply proposal only; never sends or saves externally.",
                 argument_model=SaveReplyDraftArgs,
                 handler=handlers["save_reply_draft"],
+            ),
+            "save_task_proposal": ToolSpec(
+                name="save_task_proposal",
+                description="Create an in-memory task proposal only; never writes externally.",
+                argument_model=SaveTaskProposalArgs,
+                handler=handlers["save_task_proposal"],
             ),
             "ask_user": ToolSpec(
                 name="ask_user",

@@ -68,6 +68,9 @@ class FixtureBackedToolRuntimeV1:
     def save_reply_draft(self, arguments: BaseModel) -> ToolObservation:
         return self._fixture_observation("save_reply_draft", arguments)
 
+    def save_task_proposal(self, arguments: BaseModel) -> ToolObservation:
+        return self._fixture_observation("save_task_proposal", arguments)
+
     def ask_user(self, arguments: AskUserArgs) -> ToolObservation:
         self._record(arguments, "ask_user", None, "control", None)
         return ToolObservation(

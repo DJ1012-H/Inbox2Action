@@ -13,6 +13,7 @@ from inbox2action.tools.schemas import (
     DoneArgs,
     NoArguments,
     SaveReplyDraftArgs,
+    SaveTaskProposalArgs,
 )
 
 ObservationStatus = Literal[
@@ -40,6 +41,15 @@ class DraftProposal:
     recipient: str | None
     subject: str
     body: str
+
+
+@dataclass(frozen=True)
+class TaskProposal:
+    proposal_id: str
+    title: str
+    description: str
+    due_at: datetime | None
+    priority: Literal["low", "medium", "high"]
 
 
 def _default_busy_intervals() -> list[tuple[datetime, datetime]]:
@@ -70,6 +80,7 @@ class MockToolRuntime:
         default_factory=_default_busy_intervals
     )
     proposals: list[DraftProposal] = field(default_factory=list)
+    task_proposals: list[TaskProposal] = field(default_factory=list)
 
     def get_current_time(self, _: NoArguments) -> ToolObservation:
         return ToolObservation(
@@ -126,6 +137,35 @@ class MockToolRuntime:
                 "external_side_effects": 0,
                 "subject_length": len(arguments.subject),
                 "body_length": len(arguments.body),
+            },
+        )
+
+    def save_task_proposal(self, arguments: SaveTaskProposalArgs) -> ToolObservation:
+        """Store a deterministic in-memory proposal without external task creation."""
+
+        proposal_id = f"task-proposal-{len(self.task_proposals) + 1}"
+        self.task_proposals.append(
+            TaskProposal(
+                proposal_id=proposal_id,
+                title=arguments.title,
+                description=arguments.description,
+                due_at=arguments.due_at,
+                priority=arguments.priority,
+            )
+        )
+        return ToolObservation(
+            tool_name="save_task_proposal",
+            observation_type="task_proposal",
+            status="proposal_created",
+            data={
+                "proposal_id": proposal_id,
+                "proposal_type": "task",
+                "saved": True,
+                "external_side_effect": False,
+                "title_length": len(arguments.title),
+                "description_length": len(arguments.description),
+                "due_at_present": arguments.due_at is not None,
+                "priority": arguments.priority,
             },
         )
 

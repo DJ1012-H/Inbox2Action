@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -48,6 +49,24 @@ class SaveReplyDraftArgs(BaseModel):
     recipient: str | None = Field(default=None, max_length=320)
     subject: str = Field(min_length=1, max_length=200)
     body: str = Field(min_length=1, max_length=10000)
+
+
+class SaveTaskProposalArgs(BaseModel):
+    """Arguments for a local-only task proposal."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    title: str = Field(min_length=1, max_length=200)
+    description: str = Field(min_length=1, max_length=4000)
+    due_at: datetime | None = None
+    priority: Literal["low", "medium", "high"]
+
+    @field_validator("due_at")
+    @classmethod
+    def require_explicit_offset(cls, value: datetime | None) -> datetime | None:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("due_at must include an explicit UTC offset")
+        return value
 
 
 class AskUserArgs(BaseModel):
