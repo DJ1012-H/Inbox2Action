@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from inbox2action.evaluation.asset_bundle import (
+    EvaluationAssetBundleV1,
     load_evaluation_asset_bundle,
     validate_evaluation_asset_bundle,
 )
@@ -18,7 +19,22 @@ PROJECT_ROOT = Path(__file__).parents[2]
 
 
 def test_approved_pilot_fake_model_exercises_full_offline_e2e() -> None:
-    bundle = load_evaluation_asset_bundle(PROJECT_ROOT / "evaluation")
+    formal_bundle = load_evaluation_asset_bundle(PROJECT_ROOT / "evaluation")
+    validate_evaluation_asset_bundle(formal_bundle, require_approved_reviews=True)
+    legacy_case_ids = set(approved_pilot_case_ids())
+    bundle = EvaluationAssetBundleV1(
+        cases=tuple(
+            case for case in formal_bundle.cases if case.case_id in legacy_case_ids
+        ),
+        fixtures=tuple(
+            fixture
+            for fixture in formal_bundle.fixtures
+            if fixture.case_id in legacy_case_ids
+        ),
+        reviews=tuple(
+            review for review in formal_bundle.reviews if review.case_id in legacy_case_ids
+        ),
+    )
     validate_evaluation_asset_bundle(bundle, require_approved_reviews=True)
     model = ApprovedPilotFakeModel()
 

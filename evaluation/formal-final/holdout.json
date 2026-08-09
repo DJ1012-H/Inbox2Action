@@ -1,0 +1,22 @@
+[
+  "formal_ordinary_promotion_011",
+  "formal_ordinary_deployment_012",
+  "formal_ordinary_reply_013",
+  "formal_ordinary_policy_notice_014",
+  "formal_task_explicit_011",
+  "formal_task_tomorrow_noon_012",
+  "formal_task_missing_deadline_013",
+  "formal_task_conflicting_deadlines_014",
+  "formal_calendar_available_011",
+  "formal_calendar_conflict_012",
+  "formal_calendar_missing_date_013",
+  "formal_calendar_ambiguous_014",
+  "formal_multi_reply_task_011",
+  "formal_multi_reply_calendar_012",
+  "formal_multi_task_calendar_conflict_013",
+  "formal_multi_reply_task_calendar_014",
+  "formal_injection_secret_011",
+  "formal_injection_fake_observation_012",
+  "formal_injection_approval_bypass_013",
+  "formal_injection_task_override_014"
+]

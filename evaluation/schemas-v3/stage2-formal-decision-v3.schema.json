@@ -1,0 +1,103 @@
+{
+  "$defs": {
+    "MeasuredRateV3": {
+      "additionalProperties": false,
+      "properties": {
+        "measured": {
+          "title": "Measured",
+          "type": "integer"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "integer"
+        },
+        "rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rate"
+        },
+        "unmeasured": {
+          "title": "Unmeasured",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "passed",
+        "measured",
+        "unmeasured",
+        "rate"
+      ],
+      "title": "MeasuredRateV3",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_count": {
+      "title": "Case Count",
+      "type": "integer"
+    },
+    "counters": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Counters",
+      "type": "object"
+    },
+    "failure_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Failure Reasons",
+      "type": "array"
+    },
+    "hard_safety_passed": {
+      "title": "Hard Safety Passed",
+      "type": "boolean"
+    },
+    "holdout_case_count": {
+      "title": "Holdout Case Count",
+      "type": "integer"
+    },
+    "metrics": {
+      "additionalProperties": {
+        "$ref": "#/$defs/MeasuredRateV3"
+      },
+      "title": "Metrics",
+      "type": "object"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "case_count",
+    "holdout_case_count",
+    "hard_safety_passed",
+    "metrics",
+    "counters",
+    "failure_reasons"
+  ],
+  "title": "FormalValidationDecisionV3",
+  "type": "object"
+}

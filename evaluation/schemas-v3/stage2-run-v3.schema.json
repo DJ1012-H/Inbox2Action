@@ -1,0 +1,727 @@
+{
+  "$defs": {
+    "PilotCaseRunResultV3": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Acceptance Passed"
+        },
+        "action_dependencies_satisfied": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action Dependencies Satisfied"
+        },
+        "action_plan_valid": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action Plan Valid"
+        },
+        "actual_tool_sequence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Actual Tool Sequence",
+          "type": "array"
+        },
+        "actual_triage": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Actual Triage"
+        },
+        "approval_bypass_attempts": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approval Bypass Attempts"
+        },
+        "approval_bypasses": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approval Bypasses"
+        },
+        "approval_gate_passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approval Gate Passed"
+        },
+        "arguments_valid": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Arguments Valid"
+        },
+        "authorized_tool_executions": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authorized Tool Executions"
+        },
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "completion_tokens": {
+          "default": 0,
+          "title": "Completion Tokens",
+          "type": "integer"
+        },
+        "dependency_blocked_attempts": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dependency Blocked Attempts"
+        },
+        "deterministic_prompt_injection": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deterministic Prompt Injection"
+        },
+        "elapsed_ms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Elapsed Ms"
+        },
+        "error_class": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Class"
+        },
+        "evaluated_safety_checks": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evaluated Safety Checks",
+          "type": "array"
+        },
+        "external_side_effects": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Side Effects"
+        },
+        "failure_reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failure Reasons",
+          "type": "array"
+        },
+        "fixture_resolution_passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixture Resolution Passed"
+        },
+        "forbidden_tool_attempts": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Forbidden Tool Attempts"
+        },
+        "forbidden_tools_absent": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Forbidden Tools Absent"
+        },
+        "loop_exceeded": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Loop Exceeded"
+        },
+        "mode": {
+          "enum": [
+            "dry_run",
+            "injected_model"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "parameter_blocked_attempts": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parameter Blocked Attempts"
+        },
+        "parameter_resolution_passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parameter Resolution Passed"
+        },
+        "policy_gate_passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Policy Gate Passed"
+        },
+        "policy_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Policy Source"
+        },
+        "policy_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Policy Version"
+        },
+        "prompt_tokens": {
+          "default": 0,
+          "title": "Prompt Tokens",
+          "type": "integer"
+        },
+        "required_tools_present": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required Tools Present"
+        },
+        "requires_replan_after_observation": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requires Replan After Observation"
+        },
+        "requires_user_clarification_after_conflict": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requires User Clarification After Conflict"
+        },
+        "response_safety_evaluated": {
+          "default": false,
+          "title": "Response Safety Evaluated",
+          "type": "boolean"
+        },
+        "response_safety_passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Response Safety Passed"
+        },
+        "safe_to_plan_actions": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Safe To Plan Actions"
+        },
+        "safety_passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Safety Passed"
+        },
+        "secret_disclosures": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Secret Disclosures"
+        },
+        "security_reason_present": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Security Reason Present"
+        },
+        "security_triage_passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Security Triage Passed"
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "blocked",
+            "model_failed",
+            "infrastructure_error",
+            "sequence_mismatch",
+            "approval_blocked",
+            "policy_blocked",
+            "not_executed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "suspected_prompt_injection": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Suspected Prompt Injection"
+        },
+        "tool_calls": {
+          "items": {
+            "$ref": "#/$defs/ToolCallSummaryV1"
+          },
+          "title": "Tool Calls",
+          "type": "array"
+        },
+        "tool_selection_correct": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Selection Correct"
+        },
+        "tool_sequence_correct": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Sequence Correct"
+        },
+        "tool_steps": {
+          "default": 0,
+          "title": "Tool Steps",
+          "type": "integer"
+        },
+        "total_tokens": {
+          "default": 0,
+          "title": "Total Tokens",
+          "type": "integer"
+        },
+        "total_tool_attempts": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Total Tool Attempts"
+        },
+        "triage_correct": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Triage Correct"
+        },
+        "unauthorized_tool_attempts": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unauthorized Tool Attempts"
+        },
+        "unauthorized_tool_executions": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unauthorized Tool Executions"
+        },
+        "unauthorized_write_operations": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unauthorized Write Operations"
+        },
+        "unknown_tool_attempts": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unknown Tool Attempts"
+        },
+        "unknown_tool_executions": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unknown Tool Executions"
+        },
+        "unmeasured_safety_checks": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unmeasured Safety Checks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "case_id",
+        "mode",
+        "status"
+      ],
+      "title": "PilotCaseRunResultV3",
+      "type": "object"
+    },
+    "ToolCallSummaryV1": {
+      "additionalProperties": false,
+      "properties": {
+        "argument_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Argument Digest"
+        },
+        "argument_keys": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Argument Keys",
+          "type": "array"
+        },
+        "blocked": {
+          "title": "Blocked",
+          "type": "boolean"
+        },
+        "error_class": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Class"
+        },
+        "fixture_matched": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Fixture Matched"
+        },
+        "matched_fixture_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Matched Fixture Id"
+        },
+        "step": {
+          "title": "Step",
+          "type": "integer"
+        },
+        "tool_name": {
+          "title": "Tool Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "step",
+        "tool_name",
+        "argument_keys",
+        "argument_digest",
+        "matched_fixture_id",
+        "fixture_matched",
+        "blocked",
+        "error_class"
+      ],
+      "title": "ToolCallSummaryV1",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "dataset_version": {
+      "default": "deepseek-validation-v1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "dry_run",
+        "injected_model"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "prompt_version": {
+      "default": "stage2-remediation-v3",
+      "title": "Prompt Version",
+      "type": "string"
+    },
+    "results": {
+      "items": {
+        "$ref": "#/$defs/PilotCaseRunResultV3"
+      },
+      "title": "Results",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "3.0",
+      "default": "3.0",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "mode",
+    "results"
+  ],
+  "title": "PilotEvaluationRunV3",
+  "type": "object"
+}

@@ -1,0 +1,63 @@
+{
+  "$defs": {
+    "TriageDecision": {
+      "enum": [
+        "IGNORE",
+        "NOTIFY",
+        "ACTION_REQUIRED"
+      ],
+      "title": "TriageDecision",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "confidence": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "decision": {
+      "$ref": "#/$defs/TriageDecision"
+    },
+    "reason": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "safe_to_plan_actions": {
+      "title": "Safe To Plan Actions",
+      "type": "boolean"
+    },
+    "security_reason": {
+      "anyOf": [
+        {
+          "maxLength": 1000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Security Reason"
+    },
+    "suspected_prompt_injection": {
+      "title": "Suspected Prompt Injection",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "decision",
+    "reason",
+    "confidence",
+    "suspected_prompt_injection",
+    "safe_to_plan_actions"
+  ],
+  "title": "TriageResultV3",
+  "type": "object"
+}

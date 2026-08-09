@@ -1,0 +1,184 @@
+{
+  "$defs": {
+    "ActionNodeV3": {
+      "additionalProperties": false,
+      "description": "One authorized action and its deterministic prerequisites.",
+      "properties": {
+        "action_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "depends_on": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Depends On",
+          "type": "array"
+        },
+        "parameter_resolutions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ParameterResolutionV3"
+          },
+          "title": "Parameter Resolutions",
+          "type": "array"
+        },
+        "required_parameters": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Parameters",
+          "type": "array"
+        },
+        "requires_approval": {
+          "default": false,
+          "title": "Requires Approval",
+          "type": "boolean"
+        },
+        "tool_name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Tool Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_id",
+        "tool_name"
+      ],
+      "title": "ActionNodeV3",
+      "type": "object"
+    },
+    "ActionPlanV3": {
+      "additionalProperties": false,
+      "description": "A bounded acyclic action graph consumed by the execution policy.",
+      "properties": {
+        "actions": {
+          "items": {
+            "$ref": "#/$defs/ActionNodeV3"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Actions",
+          "type": "array"
+        },
+        "plan_version": {
+          "default": "stage2-action-plan-v3",
+          "title": "Plan Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "actions"
+      ],
+      "title": "ActionPlanV3",
+      "type": "object"
+    },
+    "ParameterResolutionStatus": {
+      "enum": [
+        "RESOLVED",
+        "MISSING_REQUIRED",
+        "AMBIGUOUS",
+        "CONFLICTING",
+        "NOT_REQUIRED"
+      ],
+      "title": "ParameterResolutionStatus",
+      "type": "string"
+    },
+    "ParameterResolutionV3": {
+      "additionalProperties": false,
+      "description": "A non-secret business-resolution result for one action parameter.",
+      "properties": {
+        "field_name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Field Name",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "status": {
+          "$ref": "#/$defs/ParameterResolutionStatus"
+        }
+      },
+      "required": [
+        "field_name",
+        "status"
+      ],
+      "title": "ParameterResolutionV3",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Independently reviewed runtime authorization, separate from Gold labels.",
+  "properties": {
+    "action_plan": {
+      "$ref": "#/$defs/ActionPlanV3"
+    },
+    "approved_action_ids": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Approved Action Ids",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "case_id": {
+      "maxLength": 64,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "policy_source": {
+      "enum": [
+        "reviewed_policy",
+        "diagnostic_only"
+      ],
+      "title": "Policy Source",
+      "type": "string"
+    },
+    "policy_version": {
+      "const": "stage2-case-policy-v3",
+      "default": "stage2-case-policy-v3",
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "review_status": {
+      "default": "draft",
+      "enum": [
+        "draft",
+        "approved"
+      ],
+      "title": "Review Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_id",
+    "policy_source",
+    "action_plan"
+  ],
+  "title": "CaseExecutionPolicyV3",
+  "type": "object"
+}

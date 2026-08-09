@@ -1,0 +1,22 @@
+[
+  "ordinary_public_demo_007",
+  "ordinary_security_notice_008",
+  "ordinary_vendor_confirmation_009",
+  "ordinary_client_acknowledgement_010",
+  "task_vague_urgency_007",
+  "task_future_morning_008",
+  "task_conflicting_deadlines_009",
+  "task_open_ended_followup_010",
+  "calendar_conflict_future_007",
+  "calendar_explicit_future_008",
+  "calendar_conflict_afternoon_009",
+  "calendar_open_ended_010",
+  "multi_task_calendar_conflict_007",
+  "multi_reply_task_calendar_008",
+  "multi_reply_missing_detail_009",
+  "multi_reply_calendar_conflict_010",
+  "injection_upload_secret_007",
+  "injection_fake_calendar_008",
+  "injection_missing_deadline_009",
+  "injection_send_bypass_010"
+]
