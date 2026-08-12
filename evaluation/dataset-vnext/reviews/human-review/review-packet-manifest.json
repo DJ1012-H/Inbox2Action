@@ -1,0 +1,135 @@
+{
+  "asset_sha256": {
+    "README.md": "2ec7c9fa3b9c19bd7da2339fe10e7b305dfc01d40fc21a9794404f5dbd9267a7",
+    "batch-01.md": "c7dd674ff0fab406df1b66c0148514f4f9860d4d6c1391dc565702865e2fe560",
+    "batch-02.md": "8cfc9feffc0cd7a3adb3db0e7cc4ef0dc6adb329c029f3cc0466fc1446ea03b9",
+    "batch-03.md": "6877ce456f6d6a30f8a62e8a06d790dddbef2ed0bc11b048345cdab7b32a8d9f",
+    "batch-04.md": "457505080430a11924a72b5f66c0ff2e18075b8ae6809cb919024496fce42304",
+    "batch-05.md": "7df678a29568e9209899dbe7151f22a128b78decd71ed2a7ff8916c0da02fe01",
+    "batch-06.md": "b34c46a0d1d4be7d6ae2160dba386cc87d523b186557c31d5d7e88ceaa9c8bb6",
+    "batch-07.md": "3af3058e12511520fb6a83bdc470995f1338c02b6090338be3053b646ee0f5ac",
+    "batch-08.md": "d87bf65947983096ed723bd886da31740fdc059f7ef65b4dd38ff4412d120365",
+    "batch-09.md": "6d8dc6ec316f193683c6915bd04284ea5ed1d64b472925250a8e70ebb7f74bde",
+    "batch-10.md": "51eecb50ee209cc0985ad0a1a20c3ac931c8151812f10c45c63d7a75cc830ff5",
+    "batch-11.md": "5600f828fe0ed76664e1818c2a16c84fdd2aa7ea758f39bd1fc3067880119df2",
+    "batch-12.md": "45fd837d3f704d2f1e3df85f5410bf050471610394ee85a76ea61dc97fbc262e",
+    "batch-13.md": "9ee06bc800ed4ed33d6ca9ba73c9a12551b4dd5acb4b4f0582e987602579520f",
+    "decisions-template.jsonl": "742840b00c6fe27f253d33e2879024358dcafedd04089301eca6daa3ee8e9726"
+  },
+  "batch_count": 13,
+  "batch_metadata": [
+    {
+      "batch": 1,
+      "count": 20,
+      "domain": "email",
+      "filename": "batch-01.md",
+      "first_item_id": "vnext_dev_ordinary_001",
+      "last_item_id": "vnext_dev_notification_010"
+    },
+    {
+      "batch": 2,
+      "count": 20,
+      "domain": "email",
+      "filename": "batch-02.md",
+      "first_item_id": "vnext_dev_task_001",
+      "last_item_id": "vnext_dev_calendar_010"
+    },
+    {
+      "batch": 3,
+      "count": 20,
+      "domain": "email",
+      "filename": "batch-03.md",
+      "first_item_id": "vnext_dev_multi_action_001",
+      "last_item_id": "vnext_dev_prompt_injection_010"
+    },
+    {
+      "batch": 4,
+      "count": 20,
+      "domain": "email",
+      "filename": "batch-04.md",
+      "first_item_id": "vnext_reg_ordinary_001",
+      "last_item_id": "vnext_reg_calendar_005"
+    },
+    {
+      "batch": 5,
+      "count": 20,
+      "domain": "email",
+      "filename": "batch-05.md",
+      "first_item_id": "vnext_reg_multi_action_001",
+      "last_item_id": "vnext_sec_approval_bypass_010"
+    },
+    {
+      "batch": 6,
+      "count": 20,
+      "domain": "email",
+      "filename": "batch-06.md",
+      "first_item_id": "vnext_sec_approval_bypass_011",
+      "last_item_id": "vnext_sec_html_hidden_instruction_030"
+    },
+    {
+      "batch": 7,
+      "count": 20,
+      "domain": "control",
+      "filename": "batch-07.md",
+      "first_item_id": "gmail_access_allow_001",
+      "last_item_id": "gmail_access_deny_015"
+    },
+    {
+      "batch": 8,
+      "count": 20,
+      "domain": "control",
+      "filename": "batch-08.md",
+      "first_item_id": "gmail_access_deny_016",
+      "last_item_id": "gmail_pagination_010"
+    },
+    {
+      "batch": 9,
+      "count": 20,
+      "domain": "control",
+      "filename": "batch-09.md",
+      "first_item_id": "gmail_pagination_011",
+      "last_item_id": "gmail_content_010"
+    },
+    {
+      "batch": 10,
+      "count": 20,
+      "domain": "control",
+      "filename": "batch-10.md",
+      "first_item_id": "gmail_content_011",
+      "last_item_id": "gmail_content_030"
+    },
+    {
+      "batch": 11,
+      "count": 20,
+      "domain": "control",
+      "filename": "batch-11.md",
+      "first_item_id": "gmail_observability_001",
+      "last_item_id": "gmail_observability_020"
+    },
+    {
+      "batch": 12,
+      "count": 20,
+      "domain": "control",
+      "filename": "batch-12.md",
+      "first_item_id": "gmail_access_injection_001",
+      "last_item_id": "gmail_access_injection_020"
+    },
+    {
+      "batch": 13,
+      "count": 20,
+      "domain": "control",
+      "filename": "batch-13.md",
+      "first_item_id": "response_safety_pass_001",
+      "last_item_id": "response_safety_fail_010"
+    }
+  ],
+  "batch_size": 20,
+  "candidate_commit": "f0d015013178f0c7a74294d1d68a182cf2bdd3fe",
+  "control_item_count": 140,
+  "created_at": "2026-08-13",
+  "email_item_count": 120,
+  "formal_holdout_created": false,
+  "item_count": 260,
+  "review_state": "draft",
+  "schema_version": "dataset-vnext-review-packet-1"
+}
