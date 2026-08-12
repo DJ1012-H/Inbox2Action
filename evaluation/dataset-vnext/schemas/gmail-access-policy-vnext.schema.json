@@ -78,6 +78,13 @@
           ],
           "title": "Gmail Query"
         },
+        "label_directory_fixture_id": {
+          "maxLength": 96,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+          "title": "Label Directory Fixture Id",
+          "type": "string"
+        },
         "max_messages_per_sync": {
           "anyOf": [
             {
@@ -122,6 +129,17 @@
           "title": "Provider Side Filter",
           "type": "boolean"
         },
+        "resolved_label_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Resolved Label Id"
+        },
         "time_window_days": {
           "anyOf": [
             {
@@ -138,6 +156,8 @@
         "oauth_scopes",
         "access_mode",
         "allowed_label",
+        "resolved_label_id",
+        "label_directory_fixture_id",
         "gmail_query",
         "max_messages_per_sync",
         "time_window_days",

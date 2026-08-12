@@ -29,6 +29,7 @@ above, verify that:
 
 1. only `gmail.readonly`, `LABEL_ALLOWLIST`, `Inbox2Action`, and the exact
    `label:Inbox2Action newer_than:30d` query can reach mailbox listing;
+   the display name must first resolve to exactly one immutable Gmail label ID;
 2. invalid configuration stops before the first Gmail API call;
 3. each synchronization is capped at 20 messages, 10 per page, two pages, and
    a 30-day window, with fail-closed cursor and token-loop behavior;
@@ -37,6 +38,7 @@ above, verify that:
 5. model-visible content is limited to sanitized subject/body/timezone;
    addresses use role tokens and the recipient comes from trusted application
    context;
+   the complete sanitized text and its SHA-256 must match the Gold oracle;
 6. attachment bytes/OCR, raw headers, verification codes, credentials, and
    tokens are excluded;
 7. raw bodies have zero-day persistence, sanitized context is limited to seven

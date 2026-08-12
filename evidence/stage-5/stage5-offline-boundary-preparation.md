@@ -36,6 +36,8 @@ The additional Stage 5 candidate assets contain:
 - 30 Gmail access-policy cases;
 - 20 bounded pagination cases;
 - 30 synthetic Gmail API message fixtures;
+- 5 synthetic Gmail label-directory fixtures;
+- 27 provider-shaped Gmail `messages.list` response fixtures;
 - 30 content/data-boundary cases;
 - 20 logging/persistence cases;
 - 20 access-control by prompt-injection quadrant cases;
@@ -45,6 +47,12 @@ The additional Stage 5 candidate assets contain:
 
 The Gmail boundary manifest records `real_mailbox_accessed=false` and
 `real_provider_evidence=false`.
+
+The provider-shaped fixtures use synthetic immutable label IDs rather than
+placing display names in `Message.labelIds`. FULL message payloads include
+nested MIME structures and attachment references without attachment bytes.
+Content-policy records contain exact sanitized text and hashes; this remains an
+offline oracle and is not evidence that a production normalizer implements it.
 
 ## Verification run
 

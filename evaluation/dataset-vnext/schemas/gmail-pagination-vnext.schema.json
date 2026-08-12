@@ -1,52 +1,5 @@
 {
   "$defs": {
-    "GmailPageVNext": {
-      "additionalProperties": false,
-      "properties": {
-        "message_ids": {
-          "items": {
-            "maxLength": 96,
-            "minLength": 3,
-            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
-            "type": "string"
-          },
-          "maxItems": 10,
-          "title": "Message Ids",
-          "type": "array"
-        },
-        "next_page_token": {
-          "anyOf": [
-            {
-              "maxLength": 128,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Next Page Token"
-        },
-        "request_token": {
-          "anyOf": [
-            {
-              "maxLength": 128,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Request Token"
-        }
-      },
-      "required": [
-        "message_ids"
-      ],
-      "title": "GmailPageVNext",
-      "type": "object"
-    },
     "PaginationExpectedVNext": {
       "additionalProperties": false,
       "properties": {
@@ -122,32 +75,34 @@
       "title": "Dataset Version",
       "type": "string"
     },
+    "dedupe_state_valid": {
+      "default": true,
+      "title": "Dedupe State Valid",
+      "type": "boolean"
+    },
     "expected": {
       "$ref": "#/$defs/PaginationExpectedVNext"
     },
-    "initial_cursor": {
-      "anyOf": [
-        {
-          "maxLength": 128,
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Initial Cursor"
-    },
-    "initial_sync": {
-      "title": "Initial Sync",
-      "type": "boolean"
-    },
-    "pages": {
+    "list_response_fixture_ids": {
       "items": {
-        "$ref": "#/$defs/GmailPageVNext"
+        "maxLength": 96,
+        "minLength": 3,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+        "type": "string"
       },
       "maxItems": 2,
-      "title": "Pages",
+      "title": "List Response Fixture Ids",
+      "type": "array"
+    },
+    "prior_seen_message_ids": {
+      "items": {
+        "maxLength": 96,
+        "minLength": 3,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Prior Seen Message Ids",
       "type": "array"
     },
     "scenario": {
@@ -163,6 +118,12 @@
       "title": "Schema Version",
       "type": "string"
     },
+    "sync_strategy": {
+      "const": "bounded_messages_list",
+      "default": "bounded_messages_list",
+      "title": "Sync Strategy",
+      "type": "string"
+    },
     "synthetic_only": {
       "const": true,
       "default": true,
@@ -173,8 +134,8 @@
   "required": [
     "case_id",
     "scenario",
-    "initial_sync",
-    "pages",
+    "prior_seen_message_ids",
+    "list_response_fixture_ids",
     "expected"
   ],
   "title": "GmailPaginationCaseVNext",

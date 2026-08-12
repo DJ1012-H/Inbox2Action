@@ -8,6 +8,7 @@
       "title": "BoundaryKind",
       "type": "string"
     },
+    "JsonValue": {},
     "ObservabilityExpectedVNext": {
       "additionalProperties": false,
       "properties": {
@@ -49,6 +50,24 @@
           "title": "Redacted Audit Retention Days",
           "type": "integer"
         },
+        "redacted_record": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Redacted Record",
+          "type": "object"
+        },
+        "retention_action": {
+          "enum": [
+            "emit_redacted_log",
+            "drop_raw_body",
+            "expire_sanitized_context",
+            "expire_business_result",
+            "expire_redacted_audit"
+          ],
+          "title": "Retention Action",
+          "type": "string"
+        },
         "sanitized_context_retention_days": {
           "const": 7,
           "default": 7,
@@ -58,7 +77,9 @@
       },
       "required": [
         "allowed_fields",
-        "forbidden_fields"
+        "forbidden_fields",
+        "redacted_record",
+        "retention_action"
       ],
       "title": "ObservabilityExpectedVNext",
       "type": "object"
@@ -86,12 +107,12 @@
     "expected": {
       "$ref": "#/$defs/ObservabilityExpectedVNext"
     },
-    "input_fields": {
-      "items": {
-        "type": "string"
+    "input_record": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
       },
-      "title": "Input Fields",
-      "type": "array"
+      "title": "Input Record",
+      "type": "object"
     },
     "scenario": {
       "maxLength": 96,
@@ -117,7 +138,7 @@
     "case_id",
     "boundary_kind",
     "scenario",
-    "input_fields",
+    "input_record",
     "expected"
   ],
   "title": "GmailObservabilityCaseVNext",

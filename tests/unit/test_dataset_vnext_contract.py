@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -21,6 +22,7 @@ from inbox2action.evaluation.dataset_vnext import (
 from inbox2action.evaluation.gmail_boundary_vnext import (
     GMAIL_READONLY_SCOPE,
     PILOT_LABEL,
+    PILOT_LABEL_ID,
     PILOT_QUERY,
     AccessDecision,
     AccessInjectionQuadrant,
@@ -28,6 +30,9 @@ from inbox2action.evaluation.gmail_boundary_vnext import (
     GmailAccessPolicyCaseVNext,
     GmailApiMessageFixtureVNext,
     GmailContentPolicyCaseVNext,
+    GmailLabelDirectoryFixtureVNext,
+    GmailListResponseFixtureVNext,
+    GmailMessagePartFixtureVNext,
     GmailObservabilityCaseVNext,
     GmailPaginationCaseVNext,
     ResponseSafetyScorerCaseVNext,
@@ -53,6 +58,12 @@ def _load_cases(root: Path = DATASET_ROOT) -> tuple[EmailDatasetCaseVNext, ...]:
             )
         )
     return tuple(records)
+
+
+def _walk_parts(
+    part: GmailMessagePartFixtureVNext,
+) -> tuple[GmailMessagePartFixtureVNext, ...]:
+    return (part, *(child for item in part.parts for child in _walk_parts(item)))
 
 
 def test_checked_in_dataset_vnext_is_complete_but_not_formal() -> None:
@@ -86,6 +97,8 @@ def test_checked_in_dataset_vnext_is_complete_but_not_formal() -> None:
         "pagination": 20,
         "response_safety": 20,
     }
+    assert boundary_summary.label_directory_fixture_count == 5
+    assert boundary_summary.list_response_fixture_count == 27
     assert boundary_summary.gmail_message_fixture_count == 30
     assert boundary_summary.review_status_counts == {"draft": 140}
     assert boundary_summary.pilot_account_type == "private_personal"
@@ -193,7 +206,7 @@ def test_lf_hash_is_portable_across_windows_line_endings(tmp_path: Path) -> None
 def test_vnext_schemas_use_json_schema_2020_12() -> None:
     schema_paths = sorted((DATASET_ROOT / "schemas").glob("*.schema.json"))
 
-    assert len(schema_paths) == 11
+    assert len(schema_paths) == 13
     for path in schema_paths:
         payload = json.loads(path.read_text(encoding="utf-8"))
         assert payload["$schema"] == "https://json-schema.org/draft/2020-12/schema"
@@ -222,6 +235,7 @@ def test_gmail_access_contract_is_private_label_only_and_fail_closed() -> None:
     assert all(item.private_pilot_account for item in cases)
     assert all(item.input.oauth_scopes == [GMAIL_READONLY_SCOPE] for item in allowed)
     assert all(item.input.allowed_label == PILOT_LABEL for item in allowed)
+    assert all(item.input.resolved_label_id == PILOT_LABEL_ID for item in allowed)
     assert all(item.input.gmail_query == PILOT_QUERY for item in allowed)
     assert all(item.input.provider_side_filter for item in allowed)
     assert all(item.expected.maximum_list_calls == 0 for item in denied)
@@ -239,8 +253,22 @@ def test_gmail_access_contract_is_private_label_only_and_fail_closed() -> None:
             "extra_scope",
             "empty_label",
             "missing_page_cap",
+            "label_directory_missing",
+            "label_directory_ambiguous",
         }
     )
+
+    directories = load_jsonl(
+        DATASET_ROOT / "gmail" / "label-directory-fixtures.jsonl",
+        GmailLabelDirectoryFixtureVNext,
+        identifier=lambda item: item.fixture_id,
+    )
+    assert len(directories) == 5
+    resolved = [
+        item for item in directories if item.expected_resolution_status == "resolved"
+    ]
+    assert len(resolved) == 1
+    assert resolved[0].expected_label_id == PILOT_LABEL_ID
 
 
 def test_gmail_pagination_and_content_contracts_are_bounded_and_minimized() -> None:
@@ -248,6 +276,11 @@ def test_gmail_pagination_and_content_contracts_are_bounded_and_minimized() -> N
         DATASET_ROOT / "gmail" / "pagination-cases.jsonl",
         GmailPaginationCaseVNext,
         identifier=lambda item: item.case_id,
+    )
+    list_responses = load_jsonl(
+        DATASET_ROOT / "gmail" / "list-response-fixtures.jsonl",
+        GmailListResponseFixtureVNext,
+        identifier=lambda item: item.fixture_id,
     )
     messages = load_jsonl(
         DATASET_ROOT / "gmail" / "api-message-fixtures.jsonl",
@@ -261,26 +294,38 @@ def test_gmail_pagination_and_content_contracts_are_bounded_and_minimized() -> N
     )
 
     assert len(pagination) == 20
-    assert all(len(item.pages) <= 2 for item in pagination)
+    assert len(list_responses) == 27
+    assert all(len(item.list_response_fixture_ids) <= 2 for item in pagination)
     assert all(item.expected.maximum_list_calls <= 2 for item in pagination)
     assert all(len(item.expected.processed_message_ids) <= 20 for item in pagination)
     assert all(not item.expected.unbounded_history_scan for item in pagination)
     assert {item.expected.reason_code for item in pagination}.issuperset(
-        {"invalid_cursor", "pagination_token_loop", "page_cap_reached"}
+        {"invalid_dedupe_state", "pagination_token_loop", "page_cap_reached"}
     )
+    assert all(item.request_label_ids == [PILOT_LABEL_ID] for item in list_responses)
+    assert all(item.request_query == PILOT_QUERY for item in list_responses)
+    assert all(item.request_max_results == 10 for item in list_responses)
 
     assert len(messages) == 30
     assert len(content) == 30
     messages_by_id = {item.fixture_id: item for item in messages}
-    assert sum(PILOT_LABEL in item.label_ids for item in messages) == 20
+    assert sum(PILOT_LABEL_ID in item.label_ids for item in messages) == 20
+    assert all(PILOT_LABEL not in item.label_ids for item in messages)
+    assert {item.payload.mime_type for item in messages} == {
+        "text/plain",
+        "text/html",
+        "multipart/alternative",
+        "multipart/mixed",
+    }
     assert all(
-        not attachment.content_included
+        part.body.data_base64url is None
         for item in messages
-        for attachment in item.attachments
+        for part in _walk_parts(item.payload)
+        if part.body.attachment_id is not None
     )
     for item in content:
         fixture = messages_by_id[item.message_fixture_id]
-        label_allowed = PILOT_LABEL in fixture.label_ids
+        label_allowed = PILOT_LABEL_ID in fixture.label_ids
         assert item.expected.access_allowed is label_allowed
         assert item.expected.body_fetch_allowed is label_allowed
         assert not item.expected.attachments_sent_to_model
@@ -290,14 +335,29 @@ def test_gmail_pagination_and_content_contracts_are_bounded_and_minimized() -> N
         assert not item.expected.credentials_sent_to_model
         assert item.expected.recipient_binding_source == "trusted_application_context"
         assert item.expected.address_redaction_strategy == "role_token"
+        if label_allowed:
+            assert item.expected.sanitized_subject is not None
+            assert item.expected.sanitized_body is not None
+            assert item.expected.sanitized_body_sha256 == hashlib.sha256(
+                item.expected.sanitized_body.encode("utf-8")
+            ).hexdigest()
+        else:
+            assert item.expected.sanitized_subject is None
+            assert item.expected.sanitized_body is None
         if item.expected.model_invocation_allowed:
             assert item.expected.model_visible_fields == [
                 "sanitized_subject",
                 "sanitized_body",
                 "timezone",
             ]
+            assert item.expected.model_input is not None
+            assert (
+                item.expected.model_input.sanitized_body
+                == item.expected.sanitized_body
+            )
         else:
             assert item.expected.model_visible_fields == []
+            assert item.expected.model_input is None
 
 
 def test_access_injection_observability_and_response_safety_are_explicit() -> None:
@@ -341,6 +401,23 @@ def test_access_injection_observability_and_response_safety_are_explicit() -> No
         assert item.expected.external_side_effects == 0
 
     assert len(observability) == 20
+    assert len({item.scenario for item in observability}) == 20
+    assert (
+        len(
+            {
+                json.dumps(item.expected.redacted_record, sort_keys=True)
+                for item in observability
+            }
+        )
+        == 20
+    )
+    assert {item.expected.retention_action for item in observability} == {
+        "emit_redacted_log",
+        "drop_raw_body",
+        "expire_sanitized_context",
+        "expire_business_result",
+        "expire_redacted_audit",
+    }
     assert all(not item.expected.raw_body_persisted for item in observability)
     assert all(item.expected.raw_body_retention_days == 0 for item in observability)
     assert all(
@@ -360,6 +437,7 @@ def test_access_injection_observability_and_response_safety_are_explicit() -> No
     failed = [item for item in response_safety if not item.expected.scorer_should_pass]
     assert len(passed) == 10
     assert len(failed) == 10
+    assert len({item.response_text for item in response_safety}) == 20
     assert all(
         item.expected.unauthorized_action_claims == 0
         and item.expected.secret_disclosures == 0
@@ -400,6 +478,8 @@ def test_gmail_boundary_models_reject_inconsistent_contract_records() -> None:
         identifier=lambda item: item.case_id,
     )[0]
     over_paged = pagination.model_dump(mode="json")
-    over_paged["pages"].append({"message_ids": []})
+    over_paged["list_response_fixture_ids"].extend(
+        ["gmail_list_response_extra_01", "gmail_list_response_extra_02"]
+    )
     with pytest.raises(ValueError):
         GmailPaginationCaseVNext.model_validate(over_paged)

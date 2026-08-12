@@ -1,0 +1,127 @@
+{
+  "$defs": {
+    "GmailListMessageRefVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 96,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "thread_id": {
+          "maxLength": 96,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+          "title": "Thread Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "thread_id"
+      ],
+      "title": "GmailListMessageRefVNext",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "dataset_version": {
+      "const": "inbox2action-vnext-candidate-1",
+      "default": "inbox2action-vnext-candidate-1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "fixture_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Fixture Id",
+      "type": "string"
+    },
+    "messages": {
+      "items": {
+        "$ref": "#/$defs/GmailListMessageRefVNext"
+      },
+      "maxItems": 10,
+      "title": "Messages",
+      "type": "array"
+    },
+    "next_page_token": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Next Page Token"
+    },
+    "request_label_ids": {
+      "items": {
+        "maxLength": 96,
+        "minLength": 3,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+        "type": "string"
+      },
+      "title": "Request Label Ids",
+      "type": "array"
+    },
+    "request_max_results": {
+      "const": 10,
+      "default": 10,
+      "title": "Request Max Results",
+      "type": "integer"
+    },
+    "request_page_token": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Request Page Token"
+    },
+    "request_query": {
+      "const": "label:Inbox2Action newer_than:30d",
+      "default": "label:Inbox2Action newer_than:30d",
+      "title": "Request Query",
+      "type": "string"
+    },
+    "result_size_estimate": {
+      "minimum": 0,
+      "title": "Result Size Estimate",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "synthetic_only": {
+      "const": true,
+      "default": true,
+      "title": "Synthetic Only",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "fixture_id",
+    "request_label_ids",
+    "messages",
+    "result_size_estimate"
+  ],
+  "title": "GmailListResponseFixtureVNext",
+  "type": "object"
+}

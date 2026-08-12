@@ -61,6 +61,12 @@ The application must constrain discovery in the Gmail API query itself. It
 must not fetch the Inbox or mailbox history broadly and then apply the label
 filter locally.
 
+The display name `Inbox2Action` is not a Gmail `Message.labelIds` value. Before
+listing messages, the application must resolve that exact display name from the
+account's label directory to one immutable user-label ID. Missing or ambiguous
+resolution is a deny-before-query condition. `messages.list` must send that ID
+through `labelIds[]` in addition to the bounded query.
+
 The reviewed first-pilot query is exactly:
 
 ```text

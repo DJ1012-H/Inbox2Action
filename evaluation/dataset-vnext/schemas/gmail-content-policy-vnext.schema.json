@@ -41,25 +41,16 @@
           "title": "Excluded Categories",
           "type": "array"
         },
-        "mapped_body_contains": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Mapped Body Contains",
-          "type": "array"
-        },
-        "mapped_subject": {
+        "model_input": {
           "anyOf": [
             {
-              "maxLength": 200,
-              "type": "string"
+              "$ref": "#/$defs/MinimizedModelInputVNext"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Mapped Subject"
+          "default": null
         },
         "model_invocation_allowed": {
           "title": "Model Invocation Allowed",
@@ -70,6 +61,16 @@
             "type": "string"
           },
           "title": "Model Visible Fields",
+          "type": "array"
+        },
+        "normalization_actions": {
+          "items": {
+            "maxLength": 96,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+            "type": "string"
+          },
+          "title": "Normalization Actions",
           "type": "array"
         },
         "raw_headers_sent_to_model": {
@@ -83,6 +84,59 @@
           "title": "Recipient Binding Source",
           "type": "string"
         },
+        "redacted_values": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Redacted Values",
+          "type": "array"
+        },
+        "removed_fragments": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Removed Fragments",
+          "type": "array"
+        },
+        "sanitized_body": {
+          "anyOf": [
+            {
+              "maxLength": 8000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sanitized Body"
+        },
+        "sanitized_body_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sanitized Body Sha256"
+        },
+        "sanitized_subject": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sanitized Subject"
+        },
         "verification_codes_sent_to_model": {
           "const": false,
           "default": false,
@@ -94,13 +148,42 @@
         "access_allowed",
         "body_fetch_allowed",
         "model_invocation_allowed",
-        "mapped_body_contains",
         "model_visible_fields",
+        "normalization_actions",
+        "redacted_values",
+        "removed_fragments",
         "excluded_categories",
         "recipient_binding_source",
         "address_redaction_strategy"
       ],
       "title": "ContentPolicyExpectedVNext",
+      "type": "object"
+    },
+    "MinimizedModelInputVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "sanitized_body": {
+          "maxLength": 8000,
+          "title": "Sanitized Body",
+          "type": "string"
+        },
+        "sanitized_subject": {
+          "maxLength": 200,
+          "title": "Sanitized Subject",
+          "type": "string"
+        },
+        "timezone": {
+          "const": "Asia/Shanghai",
+          "default": "Asia/Shanghai",
+          "title": "Timezone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sanitized_subject",
+        "sanitized_body"
+      ],
+      "title": "MinimizedModelInputVNext",
       "type": "object"
     }
   },

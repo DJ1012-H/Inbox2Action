@@ -16,6 +16,8 @@ none of its Gold Labels has been independently approved.
 | Provider fixtures | 60 | Synthetic observations with zero external side effects |
 | Review records | 120 draft | Human review queue; no automatic approval |
 | Synthetic Gmail API messages | 30 | Provider-shaped input; 20 labelled and 10 deliberately outside the allowlist |
+| Gmail label directories | 5 | Exact name-to-ID resolution plus missing, renamed, ambiguous, and empty failures |
+| Gmail list responses | 27 | Provider-shaped `messages.list` pages using the resolved label ID |
 | Gmail access-policy cases | 30 | Five valid and 25 deny-before-query configurations |
 | Pagination/cursor cases | 20 | Bounded paging, deduplication, loop, cursor, and page-cap behavior |
 | Content-policy mapping cases | 30 | Provider input to minimized model-visible Gold contract |
@@ -43,10 +45,14 @@ attachment contents.
   Provider failure/unknown, rejection, and retry contracts.
 - `reviews/review-records.jsonl`: one `draft` record per case. Only a human may
   advance a record after reviewing the complete candidate and Gold Label.
-- `gmail/`: synthetic Gmail API messages, access-policy cases, bounded
-  pagination cases, and the access-control/prompt-injection matrix.
-- `content-policy/model-input-gold.jsonl`: minimized provider-neutral mapping
-  expectations. Only sanitized subject, body, and timezone may be model-visible.
+- `gmail/`: synthetic `labels.list`, `messages.list`, and
+  `messages.get(format=FULL)` fixtures, access-policy cases, bounded pagination
+  cases, and the access-control/prompt-injection matrix. Gmail `labelIds`
+  contain immutable IDs; `Inbox2Action` remains the reviewed display name.
+- `content-policy/model-input-gold.jsonl`: exact minimized provider-neutral
+  mapping expectations, including complete sanitized subject/body, normalized
+  body SHA-256, transformations, redactions, removals, and model-input oracle.
+  Only sanitized subject, body, and timezone may be model-visible.
 - `observability/boundary-gold.jsonl`: logging redaction and data-retention Gold
   contracts.
 - `response-safety/scorer-calibration.jsonl`: explicit pass/fail calibration

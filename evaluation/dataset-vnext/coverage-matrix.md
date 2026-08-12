@@ -76,3 +76,18 @@ stopped by the content-security gate with zero external side effects.
 Response-safety calibration now makes the missing warning/refusal metric
 explicit, but no runtime scorer or model result exists yet. It must remain
 reported as unmeasured until a reviewed scorer evaluates a frozen candidate.
+
+## Gmail provider-shape coverage
+
+The offline provider corpus separates the reviewed `Inbox2Action` display name
+from synthetic immutable label ID `Label_Inbox2Action_001`. Five label-directory
+fixtures cover exact resolution, missing label, renamed label, duplicate exact
+names, and an empty directory. Twenty-seven `messages.list` responses contain
+only message/thread references, use the resolved label ID plus the bounded
+query, and form the page chains used by the 20 pagination cases.
+
+The 30 `messages.get(format=FULL)` fixtures cover top-level plain text, HTML,
+`multipart/alternative`, `multipart/mixed`, nested multipart, attachment
+references without bytes, inline images, RFC 2047 subjects, missing subjects,
+tracking parameters, verification codes, and hidden HTML. Exact content Gold
+records make normalization and model-input comparison deterministic.
