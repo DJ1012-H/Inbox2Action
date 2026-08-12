@@ -1,0 +1,48 @@
+{
+  "access_mode": "LABEL_ALLOWLIST",
+  "allowed_label": "Inbox2Action",
+  "asset_sha256": {
+    "content-policy/model-input-gold.jsonl": "68329fb650583ffafa222ce23de7f952e2270b6b401fbfb14a7b6de7693e5175",
+    "gmail/access-injection-matrix.jsonl": "d2f61c3a78791c32e886d29a3fa4c83935852a9c22c6a8c81efd08a585dfb52d",
+    "gmail/access-policy-cases.jsonl": "1c6ec70c4584f2174e285e02853a73f798157ac67cf1d7320e8d15b093f3ddc2",
+    "gmail/api-message-fixtures.jsonl": "cefe13edb1ef0ea9009ea8cedb5bedaf2a30c66c59d5316f32639bf27765aa07",
+    "gmail/pagination-cases.jsonl": "f07344e5842736d71a700b5e861745b144a686e904facbe0d71d39d6567ad0e9",
+    "observability/boundary-gold.jsonl": "edb1b5b6ba157042ec8d5b669d4421f2b17e4118322958e6576904570e7b185f",
+    "response-safety/scorer-calibration.jsonl": "0733986471d3bdd3e910d3472544104e41c788bc6f61e59858c8f7316438eca4",
+    "reviews/control-review-records.jsonl": "223e226f781660685994178fe8bec16170de768db6163c34e4cc27c2fac80386",
+    "schemas/gmail-access-injection-vnext.schema.json": "a800646cf471e51fbb4c186c1755ced1b44b6465f220d0fecf29355110427625",
+    "schemas/gmail-access-policy-vnext.schema.json": "d7c6c377457d8160464229b0d1a4290b304bf55ea9e8aad1bb05d27d33edd96f",
+    "schemas/gmail-content-policy-vnext.schema.json": "7da5c0e0987a621bb11abf63b0907afd9988314d63a818bace49a7ea30117bb1",
+    "schemas/gmail-message-fixture-vnext.schema.json": "008461c43478e17a1e6836ea9ccbe7cf549c3983e460c21fb4a0a21f48cbba36",
+    "schemas/gmail-observability-vnext.schema.json": "6ac815aadfde9e9590a1416037aa7c3402f3775ac3899d1a1f5050278ffae235",
+    "schemas/gmail-pagination-vnext.schema.json": "801250338f94b8c20482b5f965e6341ef72ef543cd3050d8d5eefe3148fbfaa9",
+    "schemas/response-safety-scorer-vnext.schema.json": "88de1d1d4e07a3a5fd2bedf71573d0b80c3c00b1b45fc94eb0ea73bf47f62db0"
+  },
+  "asset_state": "candidate_draft",
+  "control_case_count": 140,
+  "control_type_counts": {
+    "access_injection_matrix": 20,
+    "access_policy": 30,
+    "content_policy": 30,
+    "observability": 20,
+    "pagination": 20,
+    "response_safety": 20
+  },
+  "created_at": "2026-08-10",
+  "dataset_version": "inbox2action-vnext-candidate-1",
+  "gmail_message_fixture_count": 30,
+  "gmail_query": "label:Inbox2Action newer_than:30d",
+  "hash_algorithm": "sha256-lf-v1",
+  "max_messages_per_sync": 20,
+  "max_pages": 2,
+  "oauth_scope": "https://www.googleapis.com/auth/gmail.readonly",
+  "page_size": 10,
+  "pilot_account_type": "private_personal",
+  "real_mailbox_accessed": false,
+  "real_provider_evidence": false,
+  "review_status_counts": {
+    "draft": 140
+  },
+  "schema_version": "gmail-boundary-manifest-1",
+  "time_window_days": 30
+}

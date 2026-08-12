@@ -51,6 +51,12 @@ Accepts a provider-neutral message envelope. It must deduplicate on the
 account/message identity before creating a new workflow. It does not send,
 modify, or delete mail.
 
+Real Gmail ingestion is deferred to Stage 5. Before constructing this envelope,
+the provider adapter must satisfy the future application-level access boundary
+defined in `docs/stage-5-gmail-access-boundary.md`. In particular, a valid
+OAuth token alone does not authorize an Inbox-wide query. This is a future
+constraint and is not implemented by the current provider-neutral node.
+
 ### EmailNormalization
 
 Parses and bounds MIME/HTML content, removes signatures and quoted history,

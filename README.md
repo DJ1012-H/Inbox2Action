@@ -33,9 +33,13 @@ Stage 3 adds a provider-neutral EmailActionAgent graph, a validated Stage 2
 ActionPlan handoff, real LangGraph approval interrupts, approval revisions,
 Tool-specific parameters, dependency ordering, approved-payload binding, and
 multi-action execution. Stage 4 adds PostgreSQL persistence, LangGraph
-checkpoint/store integration, and a durable execution claim ledger. Gmail,
-Calendar, ClickUp, and all real provider writes remain out of scope until their
-later stages.
+checkpoint/store integration, and a durable execution claim ledger. Stage 5 is
+reserved for real Gmail ingestion and has not started. Its mandatory future
+application-level access, data-minimization, logging, and persistence
+constraints are recorded in
+[`docs/stage-5-gmail-access-boundary.md`](docs/stage-5-gmail-access-boundary.md).
+They are design requirements, not current capabilities. Calendar, ClickUp, and
+all real provider writes remain out of scope until their later stages.
 
 Passing Tool Boundary Safety does not establish complete end-to-end Prompt
 Injection response quality; refusal and risk-warning quality remain unmeasured.

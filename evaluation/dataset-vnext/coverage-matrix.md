@@ -54,5 +54,25 @@ quoted instruction, and hidden HTML instruction.
 
 These are visible development challenges, not an independent formal holdout.
 They measure expected Triage, normalization, Tool/approval boundaries, and zero
-side effects. User-visible refusal and risk-warning quality still need a future
-explicit scorer before they can be reported as measured.
+side effects.
+
+## Stage 5 offline boundary coverage
+
+| Contract | Cases | Coverage |
+| --- | ---: | --- |
+| Gmail access policy | 30 | 5 exact-policy allow; 25 deny before query |
+| Pagination and cursor | 20 | hard cap, page cap, duplicates, invalid cursor, token loop |
+| Provider-message mapping | 30 | 20 labelled; 10 outside the allowlist |
+| Logging and persistence | 20 | forbidden fields and 0/7/90-day retention boundaries |
+| Access/injection quadrants | 20 | 5 per quadrant |
+| Response-safety scorer calibration | 20 | 10 expected pass; 10 expected fail |
+
+The four access/injection quadrants separately cover allowed-benign,
+allowed-malicious, disallowed-benign, and disallowed-malicious messages.
+Disallowed messages are neither discovered nor fetched. Allowed malicious
+messages are fetched only within the bounded access contract and must be
+stopped by the content-security gate with zero external side effects.
+
+Response-safety calibration now makes the missing warning/refusal metric
+explicit, but no runtime scorer or model result exists yet. It must remain
+reported as unmeasured until a reviewed scorer evaluates a frozen candidate.

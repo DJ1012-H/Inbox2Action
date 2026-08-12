@@ -1,0 +1,182 @@
+{
+  "$defs": {
+    "GmailPageVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "message_ids": {
+          "items": {
+            "maxLength": 96,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Message Ids",
+          "type": "array"
+        },
+        "next_page_token": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Page Token"
+        },
+        "request_token": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Token"
+        }
+      },
+      "required": [
+        "message_ids"
+      ],
+      "title": "GmailPageVNext",
+      "type": "object"
+    },
+    "PaginationExpectedVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "duplicate_ids_dropped": {
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Duplicate Ids Dropped",
+          "type": "integer"
+        },
+        "maximum_list_calls": {
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Maximum List Calls",
+          "type": "integer"
+        },
+        "processed_message_ids": {
+          "items": {
+            "maxLength": 96,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Processed Message Ids",
+          "type": "array"
+        },
+        "reason_code": {
+          "maxLength": 96,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "blocked"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "unbounded_history_scan": {
+          "const": false,
+          "default": false,
+          "title": "Unbounded History Scan",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "processed_message_ids",
+        "duplicate_ids_dropped",
+        "maximum_list_calls"
+      ],
+      "title": "PaginationExpectedVNext",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "dataset_version": {
+      "const": "inbox2action-vnext-candidate-1",
+      "default": "inbox2action-vnext-candidate-1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "expected": {
+      "$ref": "#/$defs/PaginationExpectedVNext"
+    },
+    "initial_cursor": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Initial Cursor"
+    },
+    "initial_sync": {
+      "title": "Initial Sync",
+      "type": "boolean"
+    },
+    "pages": {
+      "items": {
+        "$ref": "#/$defs/GmailPageVNext"
+      },
+      "maxItems": 3,
+      "title": "Pages",
+      "type": "array"
+    },
+    "scenario": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Scenario",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "synthetic_only": {
+      "const": true,
+      "default": true,
+      "title": "Synthetic Only",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "case_id",
+    "scenario",
+    "initial_sync",
+    "pages",
+    "expected"
+  ],
+  "title": "GmailPaginationCaseVNext",
+  "type": "object"
+}

@@ -11,3 +11,8 @@ stage is explicitly approved.
 
 Report suspected credential exposure or an unsafe tool path before continuing
 development.
+
+Future real Gmail ingestion is governed by the application-level access and
+data-boundary constraints in `docs/stage-5-gmail-access-boundary.md`. Those
+requirements are planned Stage 5 controls and must not be reported as current
+security capabilities before implementation and acceptance.

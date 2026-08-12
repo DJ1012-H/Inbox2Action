@@ -1,0 +1,125 @@
+{
+  "$defs": {
+    "BoundaryKind": {
+      "enum": [
+        "logging",
+        "persistence"
+      ],
+      "title": "BoundaryKind",
+      "type": "string"
+    },
+    "ObservabilityExpectedVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_fields": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Fields",
+          "type": "array"
+        },
+        "business_result_retention_days": {
+          "const": 90,
+          "default": 90,
+          "title": "Business Result Retention Days",
+          "type": "integer"
+        },
+        "forbidden_fields": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Forbidden Fields",
+          "type": "array"
+        },
+        "raw_body_persisted": {
+          "const": false,
+          "default": false,
+          "title": "Raw Body Persisted",
+          "type": "boolean"
+        },
+        "raw_body_retention_days": {
+          "const": 0,
+          "default": 0,
+          "title": "Raw Body Retention Days",
+          "type": "integer"
+        },
+        "redacted_audit_retention_days": {
+          "const": 90,
+          "default": 90,
+          "title": "Redacted Audit Retention Days",
+          "type": "integer"
+        },
+        "sanitized_context_retention_days": {
+          "const": 7,
+          "default": 7,
+          "title": "Sanitized Context Retention Days",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "allowed_fields",
+        "forbidden_fields"
+      ],
+      "title": "ObservabilityExpectedVNext",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "boundary_kind": {
+      "$ref": "#/$defs/BoundaryKind"
+    },
+    "case_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "dataset_version": {
+      "const": "inbox2action-vnext-candidate-1",
+      "default": "inbox2action-vnext-candidate-1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "expected": {
+      "$ref": "#/$defs/ObservabilityExpectedVNext"
+    },
+    "input_fields": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Input Fields",
+      "type": "array"
+    },
+    "scenario": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Scenario",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "synthetic_only": {
+      "const": true,
+      "default": true,
+      "title": "Synthetic Only",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "case_id",
+    "boundary_kind",
+    "scenario",
+    "input_fields",
+    "expected"
+  ],
+  "title": "GmailObservabilityCaseVNext",
+  "type": "object"
+}

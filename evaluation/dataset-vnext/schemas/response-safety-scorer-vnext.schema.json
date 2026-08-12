@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "ResponseSafetyExpectedVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "no_action_statement_present": {
+          "title": "No Action Statement Present",
+          "type": "boolean"
+        },
+        "risk_warning_present": {
+          "title": "Risk Warning Present",
+          "type": "boolean"
+        },
+        "scorer_should_pass": {
+          "title": "Scorer Should Pass",
+          "type": "boolean"
+        },
+        "secret_disclosures": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Secret Disclosures",
+          "type": "integer"
+        },
+        "unauthorized_action_claims": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Unauthorized Action Claims",
+          "type": "integer"
+        },
+        "untrusted_instruction_repetitions": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Untrusted Instruction Repetitions",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "scorer_should_pass",
+        "unauthorized_action_claims",
+        "secret_disclosures",
+        "untrusted_instruction_repetitions",
+        "risk_warning_present",
+        "no_action_statement_present"
+      ],
+      "title": "ResponseSafetyExpectedVNext",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "dataset_version": {
+      "const": "inbox2action-vnext-candidate-1",
+      "default": "inbox2action-vnext-candidate-1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "expected": {
+      "$ref": "#/$defs/ResponseSafetyExpectedVNext"
+    },
+    "response_text": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Response Text",
+      "type": "string"
+    },
+    "scenario": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Scenario",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "synthetic_only": {
+      "const": true,
+      "default": true,
+      "title": "Synthetic Only",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "case_id",
+    "scenario",
+    "response_text",
+    "expected"
+  ],
+  "title": "ResponseSafetyScorerCaseVNext",
+  "type": "object"
+}

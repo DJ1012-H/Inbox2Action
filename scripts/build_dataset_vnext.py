@@ -6,8 +6,10 @@ import argparse
 import html
 import json
 from collections import Counter
+from collections.abc import Sequence
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -15,6 +17,7 @@ from inbox2action.evaluation.dataset_vnext import (
     DATASET_VERSION,
     AttachmentMetadataVNext,
     CandidateReviewRecordVNext,
+    CandidateReviewStatus,
     DatasetManifestVNext,
     DatasetSplit,
     EmailCategory,
@@ -32,11 +35,16 @@ from inbox2action.evaluation.dataset_vnext import (
     render_jsonl,
     validate_dataset_vnext,
 )
+from inbox2action.evaluation.gmail_boundary_vnext import (
+    build_gmail_boundary_assets,
+    validate_gmail_boundary_assets,
+)
 
 PROJECT_ROOT = Path(__file__).parents[1]
 DEFAULT_OUTPUT_ROOT = PROJECT_ROOT / "evaluation" / "dataset-vnext"
 CREATED_AT = date(2026, 8, 10)
 REFERENCE_TIME = datetime(2026, 9, 1, 9, 0, tzinfo=timezone(timedelta(hours=8)))
+LanguageCode = Literal["zh-CN", "zh-TW", "en"]
 PROJECTS = (
     "Altair",
     "Arcturus",
@@ -196,7 +204,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _language_for(index: int, *, regression: bool = False) -> str:
+def _language_for(index: int, *, regression: bool = False) -> LanguageCode:
     if regression:
         return ("zh-CN", "zh-CN", "zh-CN", "en", "zh-TW")[index - 1]
     return (
@@ -213,13 +221,13 @@ def _language_for(index: int, *, regression: bool = False) -> str:
     )[index - 1]
 
 
-def _language_tag(language: str) -> str:
+def _language_tag(language: LanguageCode) -> str:
     return {"zh-CN": "zh_cn", "zh-TW": "zh_tw", "en": "english"}[language]
 
 
 def _localized_content(
     category: EmailCategory,
-    language: str,
+    language: LanguageCode,
     project: str,
     index: int,
 ) -> tuple[str, str]:
@@ -494,7 +502,9 @@ def _standard_case(
     )
 
 
-def _security_text(family: str, language: str, project: str) -> tuple[str, str]:
+def _security_text(
+    family: str, language: LanguageCode, project: str
+) -> tuple[str, str]:
     if language == "en":
         return (
             f"Untrusted {family} test for {project}",
@@ -511,7 +521,9 @@ def _security_text(family: str, language: str, project: str) -> tuple[str, str]:
     )
 
 
-def _security_case(family: str, language: str, ordinal: int) -> EmailDatasetCaseVNext:
+def _security_case(
+    family: str, language: LanguageCode, ordinal: int
+) -> EmailDatasetCaseVNext:
     project = PROJECTS[(ordinal + 7) % len(PROJECTS)]
     case_id = f"vnext_sec_{family}_{ordinal:03d}"
     subject, body = _security_text(family, language, project)
@@ -692,7 +704,7 @@ def _write_json(path: Path, payload: object) -> None:
     )
 
 
-def _write_jsonl(path: Path, records: list[BaseModel]) -> None:
+def _write_jsonl(path: Path, records: Sequence[BaseModel]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(render_jsonl(records), encoding="utf-8", newline="\n")
 
@@ -814,7 +826,7 @@ def build_dataset_vnext(output_root: Path) -> None:
         CandidateReviewRecordVNext(
             case_id=case.case_id,
             reviewer="unassigned-human-reviewer",
-            status="draft",
+            status=CandidateReviewStatus.DRAFT,
             notes="Synthetic candidate only; independent Gold Label review is required.",
         )
         for case in cases
@@ -837,7 +849,7 @@ def build_dataset_vnext(output_root: Path) -> None:
     _write_jsonl(output_root / "workflow/scenarios.jsonl", scenarios)
     _write_jsonl(output_root / "reviews/review-records.jsonl", reviews)
 
-    schemas = {
+    schemas: dict[str, type[BaseModel]] = {
         "schemas/email-case-vnext.schema.json": EmailDatasetCaseVNext,
         "schemas/provider-fixture-vnext.schema.json": ProviderFixtureVNext,
         "schemas/workflow-scenario-vnext.schema.json": WorkflowScenarioVNext,
@@ -878,15 +890,27 @@ def build_dataset_vnext(output_root: Path) -> None:
         },
     )
     _write_json(output_root / "manifest.json", manifest.model_dump(mode="json"))
+    build_gmail_boundary_assets(output_root, created_at=CREATED_AT)
     validate_dataset_vnext(output_root)
+    validate_gmail_boundary_assets(output_root)
 
 
 def main() -> int:
     args = parse_args()
     if not args.check:
         build_dataset_vnext(args.output_root)
-    summary = validate_dataset_vnext(args.output_root)
-    print(json.dumps(summary.model_dump(mode="json"), sort_keys=True))
+    dataset_summary = validate_dataset_vnext(args.output_root)
+    gmail_boundary_summary = validate_gmail_boundary_assets(args.output_root)
+    print(
+        json.dumps(
+            {
+                "status": "PASS",
+                "email_dataset": dataset_summary.model_dump(mode="json"),
+                "gmail_boundary": gmail_boundary_summary.model_dump(mode="json"),
+            },
+            sort_keys=True,
+        )
+    )
     return 0
 
 

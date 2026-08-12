@@ -58,10 +58,27 @@ failure. A fixture result is not real-provider evidence.
 ## Checkpoint 4: external integration review gate
 
 Only after Checkpoints 1-3 pass and the user approves the scope may a separate
-bounded network test be considered. It must use a dedicated test account,
-explicit credentials, an explicit request budget, redacted evidence, and no
-production writes. Gmail ingestion, PostgreSQL deployment, Calendar, and
-ClickUp are separate gates; passing one does not authorize the others.
+bounded network test be considered. For the explicitly approved Gmail pilot,
+the user may use a personally owned private account, but only 10-20 synthetic
+test messages explicitly labelled `Inbox2Action` are in scope. Ordinary private
+mail must not be discovered, fetched, model-visible, logged, or persisted. The
+pilot still requires explicit credentials, an explicit request budget,
+redacted evidence, and no production writes. Gmail ingestion, PostgreSQL
+deployment, Calendar, and ClickUp are separate gates; passing one does not
+authorize the others.
+
+Stage 5 Gmail work has an additional design gate in
+`docs/stage-5-gmail-access-boundary.md`. Before any real-mailbox test, its
+deny-by-default access configuration, Gmail API-side label/query filtering,
+10-20 message pilot limit, content/data boundary, log redaction, and persistence
+minimization requirements must be translated into explicit acceptance cases.
+Recording these requirements does not count as implementation or measured
+Gmail evidence.
+
+The offline candidate assets under `evaluation/dataset-vnext` now express these
+requirements as 140 draft control cases and 30 synthetic Gmail API message
+fixtures. They remain review inputs: no Gmail client, OAuth flow, runtime
+scorer, network call, or real-mailbox evidence is implied.
 
 ## Acceptance metrics
 
