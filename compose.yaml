@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-inbox2action}
+      POSTGRES_USER: ${POSTGRES_USER:-inbox2action}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inbox2action_dev}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - inbox2action-postgres:/var/lib/postgresql/data
+
+volumes:
+  inbox2action-postgres:

@@ -129,3 +129,17 @@ The holdout suite instead writes the ignored
 `evidence/stage-2/deepseek-pilot-v1-holdout10-summary.md`.
 Neither output includes email bodies, complete Tool arguments or Observations,
 keys, authorization values, reasoning content, or raw HTTP payloads.
+
+## Candidate vNext assets
+
+`dataset-vnext/` is a separate candidate-only corpus for later workflow and
+security work. It does not replace or mutate any frozen Pilot or Stage 2
+formal asset. Its development, regression, security-challenge, fixture,
+workflow-scenario, Schema, and draft-review files can be prepared offline.
+No independent formal holdout is created before a future candidate freeze, and
+no candidate review is automatically approved.
+
+Run `uv run python scripts/build_dataset_vnext.py --check` to validate the
+existing candidate assets. Rebuilding with no flags is deterministic and uses
+LF-normalized SHA-256 asset hashes so Windows checkout line endings do not
+change candidate identity.

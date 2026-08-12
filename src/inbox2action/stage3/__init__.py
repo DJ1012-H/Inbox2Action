@@ -1,0 +1,88 @@
+"""Single-source Stage 3 EmailActionAgent contracts and graph."""
+
+from inbox2action.stage3.contracts import (
+    ActionProposal,
+    ActionStatus,
+    ApprovalDecision,
+    ApprovalRecord,
+    EmailEnvelope,
+    ExecutionPermit,
+    ExecutionResult,
+    NormalizedEmail,
+    Stage2PlanningBundle,
+    Stage3WorkflowStatus,
+    WorkflowAction,
+    WorkflowState,
+    action_idempotency_key,
+    payload_hash,
+    workflow_thread_id,
+)
+from inbox2action.stage3.execution import (
+    ExecutionClaimOutcome,
+    ExecutionLedger,
+    ExecutionStartOutcome,
+    InMemoryExecutionLedger,
+    WriteExecutor,
+)
+from inbox2action.stage3.fixtures import (
+    FixtureObservation,
+    FixtureToolAdapter,
+    FixtureToolError,
+    FixtureWriteExecutor,
+    UnknownFixtureToolError,
+)
+from inbox2action.stage3.graph import (
+    EmailActionGraphState,
+    build_email_action_graph,
+    workflow_state_to_graph,
+)
+from inbox2action.stage3.normalization import NormalizationError, normalize_email
+from inbox2action.stage3.workflow import (
+    ActionDependencyError,
+    ApprovalError,
+    DuplicateExecutionError,
+    InvalidTransitionError,
+    ParameterResolutionError,
+    authorize_execution,
+    prepare_workflow_state,
+)
+
+__all__ = [
+    "ActionDependencyError",
+    "ActionProposal",
+    "ActionStatus",
+    "ApprovalDecision",
+    "ApprovalError",
+    "ApprovalRecord",
+    "DuplicateExecutionError",
+    "EmailActionGraphState",
+    "EmailEnvelope",
+    "ExecutionClaimOutcome",
+    "ExecutionLedger",
+    "ExecutionPermit",
+    "ExecutionResult",
+    "ExecutionStartOutcome",
+    "FixtureObservation",
+    "FixtureToolAdapter",
+    "FixtureToolError",
+    "FixtureWriteExecutor",
+    "InMemoryExecutionLedger",
+    "InvalidTransitionError",
+    "NormalizationError",
+    "NormalizedEmail",
+    "ParameterResolutionError",
+    "Stage2PlanningBundle",
+    "Stage3WorkflowStatus",
+    "UnknownFixtureToolError",
+    "WorkflowAction",
+    "WorkflowState",
+    "WriteExecutor",
+    "action_idempotency_key",
+    "authorize_execution",
+    "build_email_action_graph",
+    "normalize_email",
+    "payload_hash",
+    "prepare_workflow_state",
+    "workflow_state_to_graph",
+    "workflow_thread_id",
+]

@@ -1,0 +1,91 @@
+{
+  "$defs": {
+    "FixtureOutcome": {
+      "enum": [
+        "ok",
+        "conflict",
+        "failed",
+        "unknown"
+      ],
+      "title": "FixtureOutcome",
+      "type": "string"
+    },
+    "JsonValue": {}
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "capability": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Capability",
+      "type": "string"
+    },
+    "case_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "dataset_version": {
+      "const": "inbox2action-vnext-candidate-1",
+      "default": "inbox2action-vnext-candidate-1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "external_side_effects": {
+      "const": 0,
+      "default": 0,
+      "title": "External Side Effects",
+      "type": "integer"
+    },
+    "fixture_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Fixture Id",
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/FixtureOutcome"
+    },
+    "request": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Request",
+      "type": "object"
+    },
+    "response": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Response",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "synthetic_only": {
+      "const": true,
+      "default": true,
+      "title": "Synthetic Only",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "fixture_id",
+    "case_id",
+    "capability",
+    "request",
+    "outcome",
+    "response"
+  ],
+  "title": "ProviderFixtureVNext",
+  "type": "object"
+}

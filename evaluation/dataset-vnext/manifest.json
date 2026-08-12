@@ -1,0 +1,83 @@
+{
+  "asset_sha256": {
+    "cases/development.jsonl": "85109fc5ccb6e18ad1f26fc8e6ee0ceda5aeffa5899e4305f9dc4f07e88866a0",
+    "cases/regression.jsonl": "b9dbde4c10c9514bf018243e08e98820f4be26af8d4964ef2eed11831e3cc2cd",
+    "cases/security-challenge.jsonl": "48d1661dee2e5c80875f7927162977915098aa570feb93cbc8c9a631b540ce18",
+    "fixtures/provider-observations.jsonl": "81a154d2f364d25605f1f141247002e3ab87932d512ea1101b765f0ce34ef5c2",
+    "reviews/review-records.jsonl": "3f62458cac93d22a427f5ffe33db7568c89cc64107312922ec9cb392b977732c",
+    "schemas/email-case-vnext.schema.json": "7c7c13d170d8a4cf4a6413bc4b437bc1d534c0a556b4e3e322ed4687b1ab051b",
+    "schemas/provider-fixture-vnext.schema.json": "5306e33c26e2d791e4e22ae692fe8203b3ceede9bdc7ea8cafaee334996c5cb0",
+    "schemas/review-record-vnext.schema.json": "95c63dedd076622822df9e05c81f4c6fcf81332386c6f79cde5459d52c79a56a",
+    "schemas/workflow-scenario-vnext.schema.json": "017f56faa1d26587b4b290be50755f3adf3dd90f8cb3c98107170a815320db09",
+    "workflow/scenarios.jsonl": "ecb22230b55b5aeb04dac1f0f2593054298b388f41a1606044675b142119dd46"
+  },
+  "asset_state": "candidate_draft",
+  "case_count": 120,
+  "category_counts": {
+    "calendar": 15,
+    "multi_action": 15,
+    "notification": 15,
+    "ordinary": 15,
+    "prompt_injection": 45,
+    "task": 15
+  },
+  "created_at": "2026-08-10",
+  "dataset_version": "inbox2action-vnext-candidate-1",
+  "fixture_count": 60,
+  "formal_holdout_created": false,
+  "hash_algorithm": "sha256-lf-v1",
+  "language_counts": {
+    "en": 28,
+    "zh-CN": 70,
+    "zh-TW": 22
+  },
+  "real_provider_evidence": false,
+  "required_coverage_tags": [
+    "plain_text",
+    "html",
+    "attachment_metadata",
+    "thread_context",
+    "pii_redaction",
+    "tracking_cleanup",
+    "long_body",
+    "ambiguous_parameters",
+    "calendar_conflict",
+    "multi_action",
+    "prompt_injection",
+    "duplicate_delivery",
+    "approval_edit",
+    "stale_approval",
+    "restart_recovery",
+    "provider_failure",
+    "provider_unknown",
+    "payload_hash_mismatch",
+    "dependency_order",
+    "rejection",
+    "retry_after_failure",
+    "zh_cn",
+    "zh_tw",
+    "english"
+  ],
+  "review_status_counts": {
+    "draft": 120
+  },
+  "schema_version": "dataset-vnext-manifest-1",
+  "split_counts": {
+    "development": 60,
+    "regression": 30,
+    "security_challenge": 30
+  },
+  "workflow_scenario_count": 30,
+  "workflow_type_counts": {
+    "approval_edit": 3,
+    "dependency_order": 3,
+    "duplicate_delivery": 3,
+    "payload_hash_mismatch": 3,
+    "provider_failure": 3,
+    "provider_unknown": 3,
+    "rejection": 3,
+    "restart_recovery": 3,
+    "retry_after_failure": 3,
+    "stale_approval": 3
+  }
+}
