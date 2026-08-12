@@ -6,6 +6,8 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+import pytest
+
 from inbox2action.evaluation.dataset_vnext import (
     CandidateReviewRecordVNext,
     CandidateReviewStatus,
@@ -115,9 +117,9 @@ def test_dataset_vnext_rebuild_is_deterministic(tmp_path: Path) -> None:
         *boundary_manifest["asset_sha256"],
     ]
     for relative_path in relative_paths:
-        assert (rebuilt / relative_path).read_bytes() == (
+        assert lf_sha256(rebuilt / relative_path) == lf_sha256(
             DATASET_ROOT / relative_path
-        ).read_bytes()
+        )
 
 
 def test_dataset_vnext_uses_synthetic_sources_and_draft_reviews() -> None:
@@ -225,7 +227,19 @@ def test_gmail_access_contract_is_private_label_only_and_fail_closed() -> None:
     assert all(item.expected.maximum_list_calls == 0 for item in denied)
     assert all(not item.expected.inbox_wide_query_allowed for item in cases)
     assert {item.scenario for item in denied}.issuperset(
-        {"missing_query", "inbox_wide_query", "all_mail_query", "local_filter_only"}
+        {
+            "missing_query",
+            "inbox_wide_query",
+            "all_mail_query",
+            "local_filter_only",
+            "scope_modify",
+            "scope_compose",
+            "scope_send",
+            "scope_mail_google",
+            "extra_scope",
+            "empty_label",
+            "missing_page_cap",
+        }
     )
 
 
@@ -366,3 +380,26 @@ def test_access_injection_observability_and_response_safety_are_explicit() -> No
     assert len(reviews) == 140
     assert all(item.status is CandidateReviewStatus.DRAFT for item in reviews)
     assert all(item.reviewed_at is None for item in reviews)
+
+
+def test_gmail_boundary_models_reject_inconsistent_contract_records() -> None:
+    access = load_jsonl(
+        DATASET_ROOT / "gmail" / "access-policy-cases.jsonl",
+        GmailAccessPolicyCaseVNext,
+        identifier=lambda item: item.case_id,
+    )[0]
+    denied_access = access.model_dump(mode="json")
+    denied_access["expected"]["decision"] = "deny_before_query"
+    denied_access["expected"]["maximum_list_calls"] = 0
+    with pytest.raises(ValueError):
+        GmailAccessPolicyCaseVNext.model_validate(denied_access)
+
+    pagination = load_jsonl(
+        DATASET_ROOT / "gmail" / "pagination-cases.jsonl",
+        GmailPaginationCaseVNext,
+        identifier=lambda item: item.case_id,
+    )[0]
+    over_paged = pagination.model_dump(mode="json")
+    over_paged["pages"].append({"message_ids": []})
+    with pytest.raises(ValueError):
+        GmailPaginationCaseVNext.model_validate(over_paged)

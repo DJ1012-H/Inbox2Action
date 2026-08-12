@@ -146,7 +146,7 @@
       "items": {
         "$ref": "#/$defs/GmailPageVNext"
       },
-      "maxItems": 3,
+      "maxItems": 2,
       "title": "Pages",
       "type": "array"
     },

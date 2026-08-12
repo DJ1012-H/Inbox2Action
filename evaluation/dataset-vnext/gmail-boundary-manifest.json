@@ -15,7 +15,7 @@
     "schemas/gmail-content-policy-vnext.schema.json": "7da5c0e0987a621bb11abf63b0907afd9988314d63a818bace49a7ea30117bb1",
     "schemas/gmail-message-fixture-vnext.schema.json": "008461c43478e17a1e6836ea9ccbe7cf549c3983e460c21fb4a0a21f48cbba36",
     "schemas/gmail-observability-vnext.schema.json": "6ac815aadfde9e9590a1416037aa7c3402f3775ac3899d1a1f5050278ffae235",
-    "schemas/gmail-pagination-vnext.schema.json": "801250338f94b8c20482b5f965e6341ef72ef543cd3050d8d5eefe3148fbfaa9",
+    "schemas/gmail-pagination-vnext.schema.json": "790da217d74d43939d3806e737d720a3b455df373938e14978d084728dfdb0da",
     "schemas/response-safety-scorer-vnext.schema.json": "88de1d1d4e07a3a5fd2bedf71573d0b80c3c00b1b45fc94eb0ea73bf47f62db0"
   },
   "asset_state": "candidate_draft",
