@@ -6,12 +6,13 @@
     "approvals/batch-04.json",
     "approvals/batch-05.json",
     "approvals/batch-06.json",
-    "approvals/batch-07.json"
+    "approvals/batch-07.json",
+    "approvals/batch-08.json"
   ],
-  "approved_batch_count": 7,
-  "approved_item_count": 140,
+  "approved_batch_count": 8,
+  "approved_item_count": 160,
   "asset_sha256": {
-    "README.md": "9bb87752c15f4a2b0f245594517ab3e06746d67839b0e979aa40fa26798d3c25",
+    "README.md": "edcd9061c3b0b031b6624470ccb7a8f792cc61f092e31fbf8c0fda369680854e",
     "approvals/batch-01.json": "3b55daee7875ce33aa3168d9cbbdbf5ac5fa1c32de4ef739cff611ca0e7e8da9",
     "approvals/batch-02.json": "f6a1d0da9e072aa936de73ff39d696d4c4427fe767ac08c0cac2a975af76f39d",
     "approvals/batch-03.json": "cd9940f804cfea5cf64d3c47f4bfb8491c43ff0101e87d0f7b457ac7d5420e94",
@@ -19,6 +20,7 @@
     "approvals/batch-05.json": "ee1fd0368bc07da5cf76908c9ef089a337c1b3d93d60d293a8e4958bd955a227",
     "approvals/batch-06.json": "6ffd14768d724cac6f7bf19843dc37f944ca5e8dede509fb6120d047ce43a848",
     "approvals/batch-07.json": "e10e52d071e5473f0fbf08b4677614fb0f5de1c2cdf1ea434ea64e85ecc98cce",
+    "approvals/batch-08.json": "085bd83b0bad4e9b2c018dd5f1143bd193a939273d77852efa514e02a021eed3",
     "batch-01.md": "c7dd674ff0fab406df1b66c0148514f4f9860d4d6c1391dc565702865e2fe560",
     "batch-02.md": "8cfc9feffc0cd7a3adb3db0e7cc4ef0dc6adb329c029f3cc0466fc1446ea03b9",
     "batch-03.md": "6877ce456f6d6a30f8a62e8a06d790dddbef2ed0bc11b048345cdab7b32a8d9f",
@@ -32,7 +34,7 @@
     "batch-11.md": "5600f828fe0ed76664e1818c2a16c84fdd2aa7ea758f39bd1fc3067880119df2",
     "batch-12.md": "45fd837d3f704d2f1e3df85f5410bf050471610394ee85a76ea61dc97fbc262e",
     "batch-13.md": "9ee06bc800ed4ed33d6ca9ba73c9a12551b4dd5acb4b4f0582e987602579520f",
-    "decisions-template.jsonl": "1777b86aedb274d6299aa859e9d5b27a6d328cbe8c5e111adeb054a07828c207"
+    "decisions-template.jsonl": "4a8c8875ac8a9eb69821cabbeeacf0cd6d165c54081ad451b3c32cd2af20006d"
   },
   "batch_count": 13,
   "batch_metadata": [

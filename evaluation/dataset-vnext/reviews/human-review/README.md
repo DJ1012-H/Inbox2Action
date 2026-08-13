@@ -16,7 +16,7 @@ The first six batches cover 120 email candidates; the remaining seven cover
 | 05 | email | 20 | APPROVED | [batch-05.md](batch-05.md) |
 | 06 | email | 20 | APPROVED | [batch-06.md](batch-06.md) |
 | 07 | control | 20 | APPROVED | [batch-07.md](batch-07.md) |
-| 08 | control | 20 | PENDING | [batch-08.md](batch-08.md) |
+| 08 | control | 20 | APPROVED | [batch-08.md](batch-08.md) |
 | 09 | control | 20 | PENDING | [batch-09.md](batch-09.md) |
 | 10 | control | 20 | PENDING | [batch-10.md](batch-10.md) |
 | 11 | control | 20 | PENDING | [batch-11.md](batch-11.md) |
