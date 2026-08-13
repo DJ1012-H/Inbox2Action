@@ -38,26 +38,26 @@
 {"batch": 2, "decision": "approved", "item_id": "vnext_dev_calendar_008", "notes": "Approved via explicit project-owner command for batch 02.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
 {"batch": 2, "decision": "approved", "item_id": "vnext_dev_calendar_009", "notes": "Approved via explicit project-owner command for batch 02.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
 {"batch": 2, "decision": "approved", "item_id": "vnext_dev_calendar_010", "notes": "Approved via explicit project-owner command for batch 02.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_multi_action_001", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_multi_action_002", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_multi_action_003", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_multi_action_004", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_multi_action_005", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_multi_action_006", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_multi_action_007", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_multi_action_008", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_multi_action_009", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_multi_action_010", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_prompt_injection_001", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_prompt_injection_002", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_prompt_injection_003", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_prompt_injection_004", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_prompt_injection_005", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_prompt_injection_006", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_prompt_injection_007", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_prompt_injection_008", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_prompt_injection_009", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 3, "decision": "pending", "item_id": "vnext_dev_prompt_injection_010", "notes": null, "reviewed_at": null, "reviewer": null}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_multi_action_001", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_multi_action_002", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_multi_action_003", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_multi_action_004", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_multi_action_005", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_multi_action_006", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_multi_action_007", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_multi_action_008", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_multi_action_009", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_multi_action_010", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_prompt_injection_001", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_prompt_injection_002", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_prompt_injection_003", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_prompt_injection_004", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_prompt_injection_005", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_prompt_injection_006", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_prompt_injection_007", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_prompt_injection_008", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_prompt_injection_009", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 3, "decision": "approved", "item_id": "vnext_dev_prompt_injection_010", "notes": "Approved via explicit project-owner command for batch 03.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
 {"batch": 4, "decision": "pending", "item_id": "vnext_reg_ordinary_001", "notes": null, "reviewed_at": null, "reviewer": null}
 {"batch": 4, "decision": "pending", "item_id": "vnext_reg_ordinary_002", "notes": null, "reviewed_at": null, "reviewer": null}
 {"batch": 4, "decision": "pending", "item_id": "vnext_reg_ordinary_003", "notes": null, "reviewed_at": null, "reviewer": null}
