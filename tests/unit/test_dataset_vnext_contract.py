@@ -106,14 +106,15 @@ def test_checked_in_dataset_vnext_is_complete_but_not_formal() -> None:
     assert boundary_summary.real_provider_evidence is False
 
 
-def test_review_packet_records_only_the_explicitly_approved_batch() -> None:
+def test_review_packet_records_only_receipted_batches() -> None:
     review_root = DATASET_ROOT / "reviews" / "human-review"
     manifest = json.loads(
         (review_root / "review-packet-manifest.json").read_text(encoding="utf-8")
     )
-    receipt = json.loads(
-        (review_root / "approvals" / "batch-01.json").read_text(encoding="utf-8")
-    )
+    receipts = [
+        json.loads((review_root / path).read_text(encoding="utf-8"))
+        for path in manifest["approval_receipts"]
+    ]
     decisions = [
         json.loads(line)
         for line in (review_root / "decisions-template.jsonl")
@@ -122,28 +123,38 @@ def test_review_packet_records_only_the_explicitly_approved_batch() -> None:
         if line
     ]
 
-    assert manifest["candidate_commit"] == receipt["candidate_commit"]
+    approved_batches = {receipt["batch"] for receipt in receipts}
     assert manifest["review_state"] == "in_review"
-    assert manifest["approved_batch_count"] == 1
-    assert manifest["approved_item_count"] == 20
+    assert manifest["approved_batch_count"] == len(approved_batches)
+    assert manifest["approved_item_count"] == len(approved_batches) * 20
     assert manifest["formal_holdout_created"] is False
-    assert receipt["approval_command"] == "APPROVE DATASET-VNEXT REVIEW BATCH-01"
-    assert receipt["formal_holdout_authorized"] is False
-    assert receipt["source_batch_sha256"] == lf_sha256(review_root / "batch-01.md")
-    assert len(receipt["item_ids"]) == len(set(receipt["item_ids"])) == 20
-    assert all(
-        item["decision"] == "approved"
-        and item["reviewer"] == "project-owner"
-        and item["reviewed_at"] == "2026-08-13"
-        for item in decisions
-        if item["batch"] == 1
-    )
+    for receipt in receipts:
+        batch_number = receipt["batch"]
+        batch_decisions = [
+            item for item in decisions if item["batch"] == batch_number
+        ]
+        assert receipt["candidate_commit"] == manifest["candidate_commit"]
+        assert receipt["approval_command"] == (
+            f"APPROVE DATASET-VNEXT REVIEW BATCH-{batch_number:02d}"
+        )
+        assert receipt["formal_holdout_authorized"] is False
+        assert receipt["source_batch_sha256"] == lf_sha256(
+            review_root / f"batch-{batch_number:02d}.md"
+        )
+        assert len(receipt["item_ids"]) == len(set(receipt["item_ids"])) == 20
+        assert receipt["item_ids"] == [item["item_id"] for item in batch_decisions]
+        assert all(
+            item["decision"] == "approved"
+            and item["reviewer"] == receipt["reviewer"]
+            and item["reviewed_at"] == receipt["reviewed_at"]
+            for item in batch_decisions
+        )
     assert all(
         item["decision"] == "pending"
         and item["reviewer"] is None
         and item["reviewed_at"] is None
         for item in decisions
-        if item["batch"] != 1
+        if item["batch"] not in approved_batches
     )
 
 
