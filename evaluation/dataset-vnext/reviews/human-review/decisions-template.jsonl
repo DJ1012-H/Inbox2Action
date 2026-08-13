@@ -198,26 +198,26 @@
 {"batch": 10, "decision": "approved", "item_id": "gmail_content_028", "notes": "Approved via explicit project-owner command for batch 10.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
 {"batch": 10, "decision": "approved", "item_id": "gmail_content_029", "notes": "Approved via explicit project-owner command for batch 10.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
 {"batch": 10, "decision": "approved", "item_id": "gmail_content_030", "notes": "Approved via explicit project-owner command for batch 10.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_001", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_002", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_003", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_004", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_005", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_006", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_007", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_008", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_009", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_010", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_011", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_012", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_013", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_014", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_015", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_016", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_017", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_018", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_019", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 11, "decision": "pending", "item_id": "gmail_observability_020", "notes": null, "reviewed_at": null, "reviewer": null}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_001", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_002", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_003", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_004", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_005", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_006", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_007", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_008", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_009", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_010", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_011", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_012", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_013", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_014", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_015", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_016", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_017", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_018", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_019", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 11, "decision": "approved", "item_id": "gmail_observability_020", "notes": "Approved via explicit project-owner command for batch 11.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
 {"batch": 12, "decision": "pending", "item_id": "gmail_access_injection_001", "notes": null, "reviewed_at": null, "reviewer": null}
 {"batch": 12, "decision": "pending", "item_id": "gmail_access_injection_002", "notes": null, "reviewed_at": null, "reviewer": null}
 {"batch": 12, "decision": "pending", "item_id": "gmail_access_injection_003", "notes": null, "reviewed_at": null, "reviewer": null}
