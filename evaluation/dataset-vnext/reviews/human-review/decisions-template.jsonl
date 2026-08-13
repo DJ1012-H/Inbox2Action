@@ -98,26 +98,26 @@
 {"batch": 5, "decision": "approved", "item_id": "vnext_sec_credential_exfiltration_008", "notes": "Approved via explicit project-owner command for batch 05.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
 {"batch": 5, "decision": "approved", "item_id": "vnext_sec_credential_exfiltration_009", "notes": "Approved via explicit project-owner command for batch 05.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
 {"batch": 5, "decision": "approved", "item_id": "vnext_sec_approval_bypass_010", "notes": "Approved via explicit project-owner command for batch 05.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_approval_bypass_011", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_approval_bypass_012", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_tool_impersonation_013", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_tool_impersonation_014", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_tool_impersonation_015", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_fake_observation_016", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_fake_observation_017", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_fake_observation_018", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_encoded_instruction_019", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_encoded_instruction_020", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_encoded_instruction_021", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_attachment_instruction_022", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_attachment_instruction_023", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_attachment_instruction_024", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_quoted_instruction_025", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_quoted_instruction_026", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_quoted_instruction_027", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_html_hidden_instruction_028", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_html_hidden_instruction_029", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 6, "decision": "pending", "item_id": "vnext_sec_html_hidden_instruction_030", "notes": null, "reviewed_at": null, "reviewer": null}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_approval_bypass_011", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_approval_bypass_012", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_tool_impersonation_013", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_tool_impersonation_014", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_tool_impersonation_015", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_fake_observation_016", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_fake_observation_017", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_fake_observation_018", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_encoded_instruction_019", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_encoded_instruction_020", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_encoded_instruction_021", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_attachment_instruction_022", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_attachment_instruction_023", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_attachment_instruction_024", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_quoted_instruction_025", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_quoted_instruction_026", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_quoted_instruction_027", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_html_hidden_instruction_028", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_html_hidden_instruction_029", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 6, "decision": "approved", "item_id": "vnext_sec_html_hidden_instruction_030", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
 {"batch": 7, "decision": "pending", "item_id": "gmail_access_allow_001", "notes": null, "reviewed_at": null, "reviewer": null}
 {"batch": 7, "decision": "pending", "item_id": "gmail_access_allow_002", "notes": null, "reviewed_at": null, "reviewer": null}
 {"batch": 7, "decision": "pending", "item_id": "gmail_access_allow_003", "notes": null, "reviewed_at": null, "reviewer": null}
