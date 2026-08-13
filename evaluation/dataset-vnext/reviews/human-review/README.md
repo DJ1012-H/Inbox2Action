@@ -9,7 +9,7 @@ The first six batches cover 120 email candidates; the remaining seven cover
 
 | Batch | Domain | Items | Status | File |
 | --- | --- | ---: | --- | --- |
-| 01 | email | 20 | PENDING | [batch-01.md](batch-01.md) |
+| 01 | email | 20 | APPROVED | [batch-01.md](batch-01.md) |
 | 02 | email | 20 | PENDING | [batch-02.md](batch-02.md) |
 | 03 | email | 20 | PENDING | [batch-03.md](batch-03.md) |
 | 04 | email | 20 | PENDING | [batch-04.md](batch-04.md) |

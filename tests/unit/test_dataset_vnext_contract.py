@@ -106,6 +106,47 @@ def test_checked_in_dataset_vnext_is_complete_but_not_formal() -> None:
     assert boundary_summary.real_provider_evidence is False
 
 
+def test_review_packet_records_only_the_explicitly_approved_batch() -> None:
+    review_root = DATASET_ROOT / "reviews" / "human-review"
+    manifest = json.loads(
+        (review_root / "review-packet-manifest.json").read_text(encoding="utf-8")
+    )
+    receipt = json.loads(
+        (review_root / "approvals" / "batch-01.json").read_text(encoding="utf-8")
+    )
+    decisions = [
+        json.loads(line)
+        for line in (review_root / "decisions-template.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line
+    ]
+
+    assert manifest["candidate_commit"] == receipt["candidate_commit"]
+    assert manifest["review_state"] == "in_review"
+    assert manifest["approved_batch_count"] == 1
+    assert manifest["approved_item_count"] == 20
+    assert manifest["formal_holdout_created"] is False
+    assert receipt["approval_command"] == "APPROVE DATASET-VNEXT REVIEW BATCH-01"
+    assert receipt["formal_holdout_authorized"] is False
+    assert receipt["source_batch_sha256"] == lf_sha256(review_root / "batch-01.md")
+    assert len(receipt["item_ids"]) == len(set(receipt["item_ids"])) == 20
+    assert all(
+        item["decision"] == "approved"
+        and item["reviewer"] == "project-owner"
+        and item["reviewed_at"] == "2026-08-13"
+        for item in decisions
+        if item["batch"] == 1
+    )
+    assert all(
+        item["decision"] == "pending"
+        and item["reviewer"] is None
+        and item["reviewed_at"] is None
+        for item in decisions
+        if item["batch"] != 1
+    )
+
+
 def test_dataset_vnext_rebuild_is_deterministic(tmp_path: Path) -> None:
     script = PROJECT_ROOT / "scripts" / "build_dataset_vnext.py"
     rebuilt = tmp_path / "dataset-vnext"

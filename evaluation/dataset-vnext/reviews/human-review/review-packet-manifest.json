@@ -1,6 +1,12 @@
 {
+  "approval_receipts": [
+    "approvals/batch-01.json"
+  ],
+  "approved_batch_count": 1,
+  "approved_item_count": 20,
   "asset_sha256": {
-    "README.md": "2ec7c9fa3b9c19bd7da2339fe10e7b305dfc01d40fc21a9794404f5dbd9267a7",
+    "README.md": "ba19034a75335381787f5122875e4e8dd99d69e60f622d675e9bdff49ba2bd9e",
+    "approvals/batch-01.json": "3b55daee7875ce33aa3168d9cbbdbf5ac5fa1c32de4ef739cff611ca0e7e8da9",
     "batch-01.md": "c7dd674ff0fab406df1b66c0148514f4f9860d4d6c1391dc565702865e2fe560",
     "batch-02.md": "8cfc9feffc0cd7a3adb3db0e7cc4ef0dc6adb329c029f3cc0466fc1446ea03b9",
     "batch-03.md": "6877ce456f6d6a30f8a62e8a06d790dddbef2ed0bc11b048345cdab7b32a8d9f",
@@ -14,7 +20,7 @@
     "batch-11.md": "5600f828fe0ed76664e1818c2a16c84fdd2aa7ea758f39bd1fc3067880119df2",
     "batch-12.md": "45fd837d3f704d2f1e3df85f5410bf050471610394ee85a76ea61dc97fbc262e",
     "batch-13.md": "9ee06bc800ed4ed33d6ca9ba73c9a12551b4dd5acb4b4f0582e987602579520f",
-    "decisions-template.jsonl": "742840b00c6fe27f253d33e2879024358dcafedd04089301eca6daa3ee8e9726"
+    "decisions-template.jsonl": "61152643dd076ddaa6cd1982c9a2b8be88c8a20b84d634c44b46b84fe6bd2f0d"
   },
   "batch_count": 13,
   "batch_metadata": [
@@ -130,6 +136,6 @@
   "email_item_count": 120,
   "formal_holdout_created": false,
   "item_count": 260,
-  "review_state": "draft",
+  "review_state": "in_review",
   "schema_version": "dataset-vnext-review-packet-1"
 }
