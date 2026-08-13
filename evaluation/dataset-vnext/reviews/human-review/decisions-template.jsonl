@@ -118,26 +118,26 @@
 {"batch": 6, "decision": "approved", "item_id": "vnext_sec_html_hidden_instruction_028", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
 {"batch": 6, "decision": "approved", "item_id": "vnext_sec_html_hidden_instruction_029", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
 {"batch": 6, "decision": "approved", "item_id": "vnext_sec_html_hidden_instruction_030", "notes": "Approved via explicit project-owner command for batch 06.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_allow_001", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_allow_002", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_allow_003", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_allow_004", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_allow_005", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_001", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_002", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_003", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_004", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_005", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_006", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_007", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_008", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_009", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_010", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_011", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_012", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_013", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_014", "notes": null, "reviewed_at": null, "reviewer": null}
-{"batch": 7, "decision": "pending", "item_id": "gmail_access_deny_015", "notes": null, "reviewed_at": null, "reviewer": null}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_allow_001", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_allow_002", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_allow_003", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_allow_004", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_allow_005", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_001", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_002", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_003", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_004", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_005", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_006", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_007", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_008", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_009", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_010", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_011", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_012", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_013", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_014", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
+{"batch": 7, "decision": "approved", "item_id": "gmail_access_deny_015", "notes": "Approved via explicit project-owner command for batch 07.", "reviewed_at": "2026-08-13", "reviewer": "project-owner"}
 {"batch": 8, "decision": "pending", "item_id": "gmail_access_deny_016", "notes": null, "reviewed_at": null, "reviewer": null}
 {"batch": 8, "decision": "pending", "item_id": "gmail_access_deny_017", "notes": null, "reviewed_at": null, "reviewer": null}
 {"batch": 8, "decision": "pending", "item_id": "gmail_access_deny_018", "notes": null, "reviewed_at": null, "reviewer": null}
