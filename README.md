@@ -9,6 +9,10 @@ PostgreSQL checkpointer as the single short-term workflow state and a separate
 execution ledger only for side-effect claims. Its Docker PostgreSQL
 interrupt/reconnect/resume acceptance case passed on 2026-08-12.
 
+The Stage 5 Gmail readonly transport passed its real Desktop OAuth, external
+token persistence/refresh, profile, and bounded metadata smoke on 2026-08-15.
+It remains disconnected from the Agent and from every Gmail write operation.
+
 Stage 2 passed its frozen real-model acceptance on 2026-08-09. The final
 `deepseek-v4-flash` formal60 batch achieved:
 
@@ -33,9 +37,15 @@ Stage 3 adds a provider-neutral EmailActionAgent graph, a validated Stage 2
 ActionPlan handoff, real LangGraph approval interrupts, approval revisions,
 Tool-specific parameters, dependency ordering, approved-payload binding, and
 multi-action execution. Stage 4 adds PostgreSQL persistence, LangGraph
-checkpoint/store integration, and a durable execution claim ledger. Gmail,
-Calendar, ClickUp, and all real provider writes remain out of scope until their
-later stages.
+checkpoint/store integration, and a durable execution claim ledger. A
+separately gated Gmail readonly OAuth transport and opt-in smoke CLI provide
+only the local transport boundary; they are not connected to the Agent or
+evaluation chain. Gmail writes, Calendar, ClickUp, and all real provider writes
+remain out of scope until their later stages.
+
+The Gmail transport setup and manual commands are documented in
+`docs/stage-5-gmail-readonly-oauth.md`. Evaluation fixtures remain under
+`eval/dataset-vnext` and are not imported by the production transport.
 
 Passing Tool Boundary Safety does not establish complete end-to-end Prompt
 Injection response quality; refusal and risk-warning quality remain unmeasured.

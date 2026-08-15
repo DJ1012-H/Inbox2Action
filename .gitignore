@@ -1,6 +1,9 @@
 .env
 .env.*
 !.env.example
+**/gmail-oauth-client.json
+**/gmail-token.json
+**/client_secret_*.apps.googleusercontent.com.json
 .venv/
 .worktrees/
 .pytest-tmp/
