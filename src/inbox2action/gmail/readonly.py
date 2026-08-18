@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+from base64 import urlsafe_b64decode
+from binascii import Error as Base64DecodeError
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -23,6 +25,10 @@ PILOT_PAGE_SIZE = 10
 PILOT_MAX_PAGES = 2
 _METADATA_HEADERS = ["From", "Subject", "Date"]
 _MAX_OUTPUT_FIELD_LENGTH = 2000
+_MAX_BODY_LENGTH = 50_000
+_MAX_HTML_LENGTH = 100_000
+_MAX_MIME_DEPTH = 32
+_MAX_MIME_PARTS = 128
 
 
 @dataclass(frozen=True)
@@ -41,6 +47,20 @@ class GmailMessageSummary:
     from_address: str
     subject: str
     date: str
+
+
+@dataclass(frozen=True)
+class GmailMessage:
+    """Bounded message content used to construct a provider-neutral envelope."""
+
+    message_id: str
+    thread_id: str
+    from_address: str
+    reply_to: str
+    subject: str
+    date: str
+    body: str
+    html: str | None
 
 
 class GmailReadonlyTransport:
@@ -94,6 +114,29 @@ class GmailReadonlyTransport:
             summaries.append(_message_summary(response, message_ref))
         logger.info("gmail_readonly_messages_loaded")
         return summaries
+
+    def read_message(
+        self,
+        message_id: str,
+        *,
+        thread_id: str | None = None,
+    ) -> GmailMessage:
+        """Read one bounded message body without exposing raw MIME downstream."""
+
+        if not isinstance(message_id, str) or not message_id or len(message_id) > 256:
+            raise ValueError("message_id must be a non-empty bounded string")
+        service = self._build_service()
+
+        def get_message() -> Any:
+            return (
+                service.users()
+                .messages()
+                .get(userId="me", id=message_id, format="full")
+                .execute()
+            )
+
+        response = self._execute(get_message)
+        return _full_message(response, message_id, thread_id)
 
     def _build_service(self) -> Any:
         # Credentials are deliberately resolved before building the API client.
@@ -181,14 +224,7 @@ def _message_summary(response: Any, message_ref: dict[str, str]) -> GmailMessage
     headers = payload.get("headers", [])
     if not isinstance(headers, list):
         raise GmailApiResponseError()
-    values: dict[str, str] = {}
-    for header in headers:
-        if not isinstance(header, dict):
-            continue
-        name = header.get("name")
-        value = header.get("value")
-        if isinstance(name, str) and isinstance(value, str):
-            values.setdefault(name.casefold(), value)
+    values = _header_values(headers)
     message_id = response.get("id", message_ref["id"])
     thread_id = response.get("threadId", message_ref["thread_id"])
     if not isinstance(message_id, str) or not isinstance(thread_id, str):
@@ -200,6 +236,133 @@ def _message_summary(response: Any, message_ref: dict[str, str]) -> GmailMessage
         subject=_safe_text(values.get("subject", "")),
         date=_safe_text(values.get("date", "")),
     )
+
+
+def _full_message(
+    response: Any,
+    message_id: str,
+    fallback_thread_id: str | None,
+) -> GmailMessage:
+    if not isinstance(response, dict):
+        raise GmailApiResponseError()
+    payload = response.get("payload")
+    if not isinstance(payload, dict):
+        raise GmailApiResponseError()
+    headers = payload.get("headers", [])
+    if not isinstance(headers, list):
+        raise GmailApiResponseError()
+    values = _header_values(headers)
+    plain, html = _extract_body_parts(payload)
+    if not plain and not html:
+        snippet = response.get("snippet")
+        if isinstance(snippet, str):
+            plain = _safe_body(snippet, _MAX_BODY_LENGTH)
+    if not plain and html:
+        plain = html
+    if not plain:
+        raise GmailApiResponseError()
+
+    response_message_id = response.get("id", message_id)
+    response_thread_id = response.get("threadId", fallback_thread_id or "")
+    if not isinstance(response_message_id, str) or not isinstance(
+        response_thread_id, str
+    ):
+        raise GmailApiResponseError()
+    return GmailMessage(
+        message_id=_safe_text(response_message_id, 256),
+        thread_id=_safe_text(response_thread_id, 256),
+        from_address=_safe_text(values.get("from", ""), 320),
+        reply_to=_safe_text(values.get("reply-to", ""), 320),
+        subject=_safe_text(values.get("subject", ""), 200),
+        date=_safe_text(values.get("date", ""), 64),
+        body=_safe_body(plain, _MAX_BODY_LENGTH),
+        html=_safe_body(html, _MAX_HTML_LENGTH) if html else None,
+    )
+
+
+def _header_values(headers: list[Any]) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for header in headers:
+        if not isinstance(header, dict):
+            continue
+        name = header.get("name")
+        value = header.get("value")
+        if isinstance(name, str) and isinstance(value, str):
+            values.setdefault(name.casefold(), value)
+    return values
+
+
+def _extract_body_parts(payload: dict[str, Any]) -> tuple[str, str]:
+    plain_parts: list[str] = []
+    html_parts: list[str] = []
+    visited_parts = 0
+    plain_length = 0
+    html_length = 0
+
+    def visit(part: Any, depth: int = 0) -> None:
+        nonlocal html_length, plain_length, visited_parts
+        if not isinstance(part, dict):
+            return
+        if depth > _MAX_MIME_DEPTH or visited_parts >= _MAX_MIME_PARTS:
+            return
+        visited_parts += 1
+        mime_type = part.get("mimeType")
+        if isinstance(mime_type, str):
+            normalized_mime = mime_type.casefold()
+            body = part.get("body")
+            if isinstance(body, dict):
+                data = body.get("data")
+                if isinstance(data, str) and data:
+                    if normalized_mime == "text/plain":
+                        remaining = _MAX_BODY_LENGTH - plain_length
+                        if remaining > 0:
+                            decoded = _decode_body(data, remaining)
+                            bounded = decoded[:remaining]
+                            plain_parts.append(bounded)
+                            plain_length += len(bounded)
+                    elif normalized_mime == "text/html":
+                        remaining = _MAX_HTML_LENGTH - html_length
+                        if remaining > 0:
+                            decoded = _decode_body(data, remaining)
+                            bounded = decoded[:remaining]
+                            html_parts.append(bounded)
+                            html_length += len(bounded)
+        children = part.get("parts", [])
+        if isinstance(children, list):
+            for child in children:
+                visit(child, depth + 1)
+                if visited_parts >= _MAX_MIME_PARTS:
+                    break
+
+    visit(payload)
+    return (
+        "\n".join(plain_parts)[:_MAX_BODY_LENGTH],
+        "\n".join(html_parts)[:_MAX_HTML_LENGTH],
+    )
+
+
+def _decode_body(value: str, max_length: int) -> str:
+    try:
+        # Gmail may return a very large base64url field. Decode only the
+        # bounded prefix needed by the downstream envelope; raw MIME never
+        # needs to be materialized in memory in full.
+        max_encoded_length = ((max_length * 4 + 2) // 3) + 4
+        bounded = value
+        if len(bounded) > max_encoded_length:
+            bounded = bounded[:max_encoded_length]
+            bounded = bounded[: len(bounded) - (len(bounded) % 4)]
+        padded = bounded + "=" * (-len(bounded) % 4)
+        return urlsafe_b64decode(padded.encode("ascii")).decode("utf-8", errors="replace")[:max_length]
+    except (Base64DecodeError, UnicodeEncodeError, ValueError):
+        raise GmailApiResponseError() from None
+
+
+def _safe_body(value: str, limit: int) -> str:
+    cleaned = "".join(
+        " " if ord(character) < 32 and character not in "\n\t" or ord(character) == 127 else character
+        for character in value
+    )
+    return cleaned.strip()[:limit]
 
 
 def _safe_text(value: str, limit: int = _MAX_OUTPUT_FIELD_LENGTH) -> str:
@@ -223,6 +386,6 @@ def _map_api_exception(error: Exception) -> GmailError:
 
 
 def _default_service_factory(credentials: Any) -> Any:
-    from googleapiclient.discovery import build  # type: ignore[import-untyped]
+    from googleapiclient.discovery import build  # type: ignore[import-not-found]
 
     return build("gmail", "v1", credentials=credentials, cache_discovery=False)

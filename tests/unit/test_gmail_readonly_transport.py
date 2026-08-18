@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any
@@ -147,6 +148,64 @@ def test_empty_recent_window_returns_no_messages_without_custom_label() -> None:
     assert messages.list_calls == [
         {"userId": "me", "q": PILOT_QUERY, "maxResults": 10}
     ]
+
+
+def test_full_message_reads_bounded_text_and_html_without_raw_mime() -> None:
+    service, messages = _service()
+    plain = base64.urlsafe_b64encode(b"Please prepare the draft.").decode()
+    html = base64.urlsafe_b64encode(b"<p>Please prepare the draft.</p>").decode()
+    messages.details["m1"] = {
+        "id": "m1",
+        "threadId": "t1",
+        "payload": {
+            "headers": [
+                {"name": "From", "value": "sender@example.test"},
+                {"name": "Reply-To", "value": "reply@example.test"},
+                {"name": "Subject", "value": "Prepare"},
+                {"name": "Date", "value": "Wed, 13 Aug 2026 10:00:00 +0800"},
+            ],
+            "mimeType": "multipart/alternative",
+            "parts": [
+                {"mimeType": "text/plain", "body": {"data": plain}},
+                {"mimeType": "text/html", "body": {"data": html}},
+            ],
+        },
+    }
+    message = GmailReadonlyTransport(
+        lambda: object(), service_factory=lambda _credentials: service
+    ).read_message("m1", thread_id="t1")
+
+    assert message.body == "Please prepare the draft."
+    assert message.html == "<p>Please prepare the draft.</p>"
+    assert message.reply_to == "reply@example.test"
+    assert messages.get_calls[-1]["format"] == "full"
+    assert "raw" not in message.__dict__
+
+
+def test_full_message_caps_large_mime_parts_before_envelope_mapping() -> None:
+    service, messages = _service()
+    plain = base64.urlsafe_b64encode(b"p" * 120_000).decode().rstrip("=")
+    html = base64.urlsafe_b64encode(b"<p>h</p>" * 30_000).decode().rstrip("=")
+    messages.details["m1"] = {
+        "id": "m1",
+        "threadId": "t1",
+        "payload": {
+            "headers": [{"name": "Subject", "value": "Large"}],
+            "mimeType": "multipart/alternative",
+            "parts": [
+                {"mimeType": "text/plain", "body": {"data": plain}},
+                {"mimeType": "text/html", "body": {"data": html}},
+            ],
+        },
+    }
+
+    message = GmailReadonlyTransport(
+        lambda: object(), service_factory=lambda _credentials: service
+    ).read_message("m1", thread_id="t1")
+
+    assert len(message.body) == 50_000
+    assert message.html is not None
+    assert len(message.html) == 100_000
 
 
 def test_incomplete_oauth_does_not_construct_gmail_service() -> None:

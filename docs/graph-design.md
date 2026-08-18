@@ -120,4 +120,6 @@ be reconciled.
    durable claim boundaries.
 5. Add PostgreSQL graph persistence and execution-ledger recovery in Stage 4.
 
-Worker polling and real provider adapters remain later-stage work.
+Stage 6 adds a bounded Gmail polling adapter and a discoverability index while
+keeping this graph as the single workflow implementation. Real provider write
+adapters remain later-stage work.

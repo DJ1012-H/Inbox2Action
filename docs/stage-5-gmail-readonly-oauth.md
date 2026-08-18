@@ -40,7 +40,8 @@ not printed.
 
 ## External files
 
-Defaults are outside the repository:
+The CLI reads the configured external paths from
+`%LOCALAPPDATA%\Inbox2Action\secrets\runtime.env`:
 
 ```text
 %LOCALAPPDATA%\Inbox2Action\secrets\gmail-oauth-client.json
@@ -59,7 +60,7 @@ the previous token and fails with `token_persistence_failed`.
 From the repository root, after the external client JSON exists:
 
 ```powershell
-uv run python scripts/run_gmail_smoke.py
+uv run --frozen python scripts/run_gmail_smoke.py
 ```
 
 The first run opens the system browser. Sign in with a Gmail account listed in
@@ -69,7 +70,7 @@ callback completes the flow and creates the external token file.
 To use explicit external paths:
 
 ```powershell
-uv run python scripts/run_gmail_smoke.py `
+uv run --frozen python scripts/run_gmail_smoke.py `
   --client-secrets 'C:\path\outside\gmail-oauth-client.json' `
   --token-path 'C:\path\outside\gmail-token.json'
 ```

@@ -1,10 +1,46 @@
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    DotEnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
+
+
+def runtime_env_path() -> Path:
+    """Return the single external runtime configuration path for this user."""
+
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    base_path = (
+        Path(local_app_data)
+        if local_app_data
+        else Path.home() / "AppData" / "Local"
+    )
+    return base_path / "Inbox2Action" / "secrets" / "runtime.env"
+
+
+_DEFAULT_RUNTIME_ENV_PATH = runtime_env_path()
+
+
+def resolve_configured_path(
+    explicit: str | Path | None,
+    configured: Path | None,
+    *,
+    setting_name: str,
+) -> Path:
+    """Resolve a CLI path over a configured external path without discovery."""
+
+    value = explicit if explicit is not None else configured
+    if value is None or not str(value).strip():
+        raise ValueError(f"{setting_name} must be configured or provided explicitly")
+    return Path(value).expanduser()
 
 
 class Settings(BaseSettings):
@@ -12,7 +48,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         case_sensitive=False,
-        env_file=".env",
+        env_file=_DEFAULT_RUNTIME_ENV_PATH,
         env_file_encoding="utf-8",
         extra="ignore",
         populate_by_name=True,
@@ -60,6 +96,50 @@ class Settings(BaseSettings):
         False,
         validation_alias="RUN_DEEPSEEK_INTEGRATION_TESTS",
     )
+    database_url: SecretStr | None = Field(
+        default=None,
+        validation_alias="INBOX2ACTION_DATABASE_URL",
+    )
+    gmail_client_secrets_path: Path | None = Field(
+        default=None,
+        validation_alias="GMAIL_CLIENT_SECRETS_PATH",
+    )
+    gmail_token_path: Path | None = Field(
+        default=None,
+        validation_alias="GMAIL_TOKEN_PATH",
+    )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """Keep process env precedence while resolving LOCALAPPDATA at runtime."""
+
+        configured_env_file = getattr(dotenv_settings, "env_file", None)
+        if configured_env_file == _DEFAULT_RUNTIME_ENV_PATH:
+            dotenv_settings = DotEnvSettingsSource(
+                settings_cls,
+                env_file=runtime_env_path(),
+                env_file_encoding="utf-8",
+            )
+        return init_settings, env_settings, dotenv_settings, file_secret_settings
+
+    @field_validator(
+        "database_url",
+        "gmail_client_secrets_path",
+        "gmail_token_path",
+        mode="before",
+    )
+    @classmethod
+    def blank_values_are_unset(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
     @field_validator("llm_base_url")
     @classmethod
@@ -93,3 +173,11 @@ class Settings(BaseSettings):
     @property
     def api_key_configured(self) -> bool:
         return self.api_key_value is not None
+
+    @property
+    def database_url_value(self) -> str | None:
+        """Return the database URL only at the database connection boundary."""
+
+        if self.database_url is None:
+            return None
+        return self.database_url.get_secret_value() or None

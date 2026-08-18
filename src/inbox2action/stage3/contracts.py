@@ -178,16 +178,16 @@ class ApprovalRecord(BaseModel):
 class ApprovalDecision(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    decision: Literal["approve", "edit", "reject"]
+    decision: Literal["approve", "edit", "reject", "clarify"]
     expected_revision: int = Field(ge=1)
     parameters: dict[str, object] | None = None
 
     @model_validator(mode="after")
     def validate_edit_payload(self) -> ApprovalDecision:
-        if self.decision == "edit" and self.parameters is None:
-            raise ValueError("edit requires replacement parameters")
-        if self.decision != "edit" and self.parameters is not None:
-            raise ValueError("only edit may include replacement parameters")
+        if self.decision in {"edit", "clarify"} and self.parameters is None:
+            raise ValueError("edit or clarify requires replacement parameters")
+        if self.decision not in {"edit", "clarify"} and self.parameters is not None:
+            raise ValueError("only edit or clarify may include replacement parameters")
         return self
 
 

@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+**/runtime.env
 **/gmail-oauth-client.json
 **/gmail-token.json
 **/client_secret_*.apps.googleusercontent.com.json

@@ -7,9 +7,8 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from inbox2action.config import Settings, resolve_configured_path
 from inbox2action.gmail import (
-    DEFAULT_CLIENT_SECRETS_PATH,
-    DEFAULT_TOKEN_PATH,
     PILOT_MAX_MESSAGES,
     GmailError,
     GmailOAuthConfig,
@@ -37,13 +36,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--client-secrets",
         type=Path,
-        default=DEFAULT_CLIENT_SECRETS_PATH,
+        default=None,
         help="External Desktop OAuth client JSON path.",
     )
     parser.add_argument(
         "--token-path",
         type=Path,
-        default=DEFAULT_TOKEN_PATH,
+        default=None,
         help="External OAuth token path.",
     )
     parser.add_argument(
@@ -58,14 +57,26 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
+        settings = Settings()
         config = GmailOAuthConfig(
-            client_secrets_path=args.client_secrets,
-            token_path=args.token_path,
+            client_secrets_path=resolve_configured_path(
+                args.client_secrets,
+                settings.gmail_client_secrets_path,
+                setting_name="GMAIL_CLIENT_SECRETS_PATH or --client-secrets",
+            ),
+            token_path=resolve_configured_path(
+                args.token_path,
+                settings.gmail_token_path,
+                setting_name="GMAIL_TOKEN_PATH or --token-path",
+            ),
         )
         credentials = GmailOAuthCredentialProvider(config)
         transport = GmailReadonlyTransport(credentials)
         profile = transport.get_profile()
         messages = transport.read_recent_messages(args.max_messages)
+    except ValueError as error:
+        print(f"gmail_smoke_failed: configuration ({error})", file=sys.stderr)
+        return 1
     except GmailError as error:
         print(f"gmail_smoke_failed: {error.code}", file=sys.stderr)
         return 1

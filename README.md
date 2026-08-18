@@ -11,7 +11,10 @@ interrupt/reconnect/resume acceptance case passed on 2026-08-12.
 
 The Stage 5 Gmail readonly transport passed its real Desktop OAuth, external
 token persistence/refresh, profile, and bounded metadata smoke on 2026-08-15.
-It remains disconnected from the Agent and from every Gmail write operation.
+Stage 6 now provides a bounded Gmail-body adapter, polling/deduplication,
+Stage 2 proposal handoff, and a local approval API/UI over the existing
+LangGraph workflow. Real Gmail-to-DeepSeek-to-PostgreSQL acceptance remains
+explicitly opt-in and is not claimed by the offline tests.
 
 Stage 2 passed its frozen real-model acceptance on 2026-08-09. The final
 `deepseek-v4-flash` formal60 batch achieved:
@@ -37,11 +40,13 @@ Stage 3 adds a provider-neutral EmailActionAgent graph, a validated Stage 2
 ActionPlan handoff, real LangGraph approval interrupts, approval revisions,
 Tool-specific parameters, dependency ordering, approved-payload binding, and
 multi-action execution. Stage 4 adds PostgreSQL persistence, LangGraph
-checkpoint/store integration, and a durable execution claim ledger. A
-separately gated Gmail readonly OAuth transport and opt-in smoke CLI provide
-only the local transport boundary; they are not connected to the Agent or
-evaluation chain. Gmail writes, Calendar, ClickUp, and all real provider writes
-remain out of scope until their later stages.
+checkpoint/store integration, and a durable execution claim ledger. Stage 5
+provides the separately gated Gmail readonly OAuth transport; Stage 6 connects
+that transport to the existing Agent boundary. Gmail writes, Calendar,
+ClickUp, and all real provider writes remain out of scope until their later
+stages. Stage 6 only exposes local proposal Tools and never enables real
+provider writes. See
+`docs/stage-6-gmail-hitl.md` for the bounded worker and approval UI.
 
 The Gmail transport setup and manual commands are documented in
 `docs/stage-5-gmail-readonly-oauth.md`. Evaluation fixtures remain under
@@ -52,13 +57,29 @@ Injection response quality; refusal and risk-warning quality remain unmeasured.
 
 ## Local setup
 
-Copy `.env.example` to `.env` only when a human explicitly enables an
-integration probe. The default configuration keeps the model disabled. Formal
-model runs additionally require explicit live-model, API-cost, and frozen-asset
+Create the one local runtime file manually at
+`%LOCALAPPDATA%\Inbox2Action\secrets\runtime.env`, using `.env.example` as a
+safe template. Do not copy real credentials into the repository. `Settings`
+loads that external file automatically, while process environment variables
+override it. The default configuration keeps the model disabled; formal model
+runs additionally require explicit live-model, API-cost, and frozen-asset
 confirmations.
 
 For the Stage 4 database workflow, start `postgres` with
 `docker compose up -d postgres`, apply the schema with
-`python scripts/setup_stage4_postgres.py`, and then run
+`uv run --frozen python scripts/setup_stage4_postgres.py`, and then run
 `tests/integration/test_stage4_postgres.py` with the opt-in variables shown in
 `docs/stage-4-persistence.md`.
+
+With the external runtime file configured, the bounded Stage 6 commands are:
+
+```powershell
+uv run --frozen python scripts/setup_stage4_postgres.py
+uv run --frozen python scripts/run_stage6_worker.py --max-messages 1
+uv run --frozen python scripts/run_stage6_approval_ui.py --port 8081
+```
+
+The worker/UI use the configured Gmail paths. `--client-secrets` and
+`--token-path` remain available as explicit per-run overrides; no directory
+scanning is performed. The UI binds to `127.0.0.1`; the example uses port
+`8081` for a local session.

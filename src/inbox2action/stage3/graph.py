@@ -231,7 +231,7 @@ def _approval_interrupt_node(
     if decision.expected_revision != approval.revision:
         raise ApprovalError("approval revision is stale")
 
-    if decision.decision == "edit":
+    if decision.decision in {"edit", "clarify"}:
         edited = ActionProposal(
             action_id=action.proposal.action_id,
             tool_name=action.proposal.tool_name,
@@ -249,7 +249,7 @@ def _approval_interrupt_node(
             ),
         )
         workflow_status = Stage3WorkflowStatus.WAITING_FOR_APPROVAL
-        event_status = "edited"
+        event_status = "clarified" if decision.decision == "clarify" else "edited"
     elif decision.decision == "reject":
         replacement = action.model_copy(
             update={
