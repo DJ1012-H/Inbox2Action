@@ -367,7 +367,7 @@ def _is_authorization_denied(error: Exception) -> bool:
 
 
 def _default_flow_factory(client_config: dict[str, Any], scopes: list[str]) -> Any:
-    from google_auth_oauthlib.flow import (  # type: ignore[import-not-found]
+    from google_auth_oauthlib.flow import (  # type: ignore[import-not-found,import-untyped]
         InstalledAppFlow,
     )
 

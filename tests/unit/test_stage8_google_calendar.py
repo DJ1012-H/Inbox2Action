@@ -6,17 +6,21 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
+from googleapiclient.errors import HttpError
 from langgraph.checkpoint.memory import InMemorySaver
 
 from inbox2action.calendar import (
     CalendarToolRuntime,
     FixtureFreeBusyAdapter,
+    GoogleCalendarClient,
     GoogleCalendarFreeBusyAdapter,
     GoogleCalendarWriteExecutor,
 )
 from inbox2action.calendar.errors import (
+    GoogleCalendarApiError,
     GoogleCalendarConflictError,
     GoogleCalendarInvalidResponseError,
+    GoogleCalendarResponseDiagnostics,
     GoogleCalendarTransportError,
 )
 from inbox2action.evaluation.policy_v3 import (
@@ -54,6 +58,66 @@ class FakeFreeBusyClient:
     def query_freebusy(self, **kwargs: object) -> dict[str, object]:
         self.calls.append(kwargs)
         return self.response
+
+
+class FakeHttpResponse(dict[str, object]):
+    def __init__(self, status: int, content_type: str = "application/json") -> None:
+        super().__init__({"content-type": content_type})
+        self.status = status
+        self.reason = "test response"
+
+
+class FakeGoogleRequest:
+    def __init__(
+        self,
+        response: object = None,
+        *,
+        error: Exception | None = None,
+        http_response: FakeHttpResponse | None = None,
+    ) -> None:
+        self.response = response
+        self.error = error
+        self.http_response = http_response or getattr(
+            error, "resp", None
+        ) or FakeHttpResponse(200)
+        self.response_callbacks: list[Any] = []
+
+    def execute(self) -> object:
+        for callback in self.response_callbacks:
+            callback(self.http_response)
+        if self.error is not None:
+            raise self.error
+        return self.response
+
+
+class FakeGoogleCalendarService:
+    def __init__(
+        self,
+        response: object = None,
+        *,
+        insert_error: Exception | None = None,
+        get_response: object = None,
+    ) -> None:
+        self.insert_request = FakeGoogleRequest(
+            response,
+            error=insert_error,
+        )
+        self.get_request = FakeGoogleRequest(
+            get_response if get_response is not None else response,
+        )
+        self.insert_kwargs: dict[str, object] | None = None
+        self.get_kwargs: dict[str, object] | None = None
+
+    def events(self) -> FakeGoogleCalendarService:
+        return self
+
+    def insert(self, **kwargs: object) -> FakeGoogleRequest:
+        self.insert_kwargs = kwargs
+        return self.insert_request
+
+    def get(self, **kwargs: object) -> FakeGoogleRequest:
+        self.get_kwargs = kwargs
+        return self.get_request
 
 
 def _freebusy_response(*busy: tuple[str, str]) -> dict[str, object]:
@@ -192,6 +256,70 @@ def test_agent_consumes_busy_observation_and_uses_authorized_free_alternative() 
     assert adapter.call_count == 2
 
 
+def test_agent_repairs_one_provider_parallel_tool_response() -> None:
+    adapter = FixtureFreeBusyAdapter()
+    runtime = CalendarToolRuntime(
+        adapter,
+        authorized_intervals=((A_START, A_END),),
+    )
+    parallel = ChatCompletionResult(
+        model="deepseek-v4-flash",
+        content=None,
+        finish_reason="tool_calls",
+        prompt_tokens=1,
+        completion_tokens=1,
+        total_tokens=2,
+        tool_calls=(
+            ToolCall(
+                "parallel-a",
+                "check_calendar_availability",
+                json.dumps(
+                    {
+                        "start": A_START.isoformat(),
+                        "end": A_END.isoformat(),
+                    }
+                ),
+            ),
+            ToolCall(
+                "parallel-b",
+                "check_calendar_availability",
+                json.dumps(
+                    {
+                        "start": B_START.isoformat(),
+                        "end": B_END.isoformat(),
+                    }
+                ),
+            ),
+        ),
+    )
+    model = ScriptedCalendarModel(
+        parallel,
+        _tool_response(
+            "check_calendar_availability",
+            "check-a",
+            {"start": A_START.isoformat(), "end": A_END.isoformat()},
+        ),
+        _tool_response("ask_user", "ask", {"question": "请确认时间"}),
+        _tool_response("done", "done", {"summary": "等待确认"}),
+    )
+
+    result = CalendarActionAgent(model, runtime).run(
+        {"subject": "项目评审", "sanitized_body": "15点"},
+        current_time="2026-08-19T09:00:00+08:00",
+    )
+
+    assert [entry.tool_name for entry in result.trace] == [
+        "check_calendar_availability",
+        "ask_user",
+        "done",
+    ]
+    assert len(model.messages) == 4
+    assert any(
+        "multiple tool calls" in str(message.get("content"))
+        for message in model.messages[1]
+    )
+
+
 def test_busy_without_authorized_alternative_asks_user_and_never_proposes() -> None:
     adapter = FixtureFreeBusyAdapter(busy_intervals=((A_START, A_END),))
     runtime = CalendarToolRuntime(adapter, authorized_intervals=((A_START, A_END),))
@@ -301,6 +429,223 @@ def _calendar_permit() -> Any:
         ),
     )
     return state
+
+
+def _authorized_calendar_permit() -> Any:
+    from inbox2action.stage3.contracts import (
+        ActionStatus,
+        ApprovalRecord,
+        ApprovalStatus,
+        payload_hash,
+    )
+    from inbox2action.stage3.workflow import authorize_execution
+
+    state = _calendar_permit()
+    proposal = state.actions[0].proposal
+    digest = payload_hash(proposal)
+    approved = state.actions[0].model_copy(
+        update={
+            "status": ActionStatus.APPROVED,
+            "approval": ApprovalRecord(
+                action_id=proposal.action_id,
+                revision=1,
+                status=ApprovalStatus.APPROVED,
+                payload_hash=digest,
+                approved_payload_hash=digest,
+            ),
+        }
+    )
+    return authorize_execution(
+        state.model_copy(
+            update={
+                "actions": [approved],
+                "current_action_id": proposal.action_id,
+            }
+        ),
+        proposal.action_id,
+    )
+
+
+def _realistic_event_response(permit: Any, *, event_id: str | None = None) -> dict[str, object]:
+    return {
+        "kind": "calendar#event",
+        "id": event_id or permit.idempotency_key,
+        "summary": "项目评审",
+        "start": {"dateTime": B_START.isoformat(), "timeZone": "Asia/Shanghai"},
+        "end": {"dateTime": B_END.isoformat(), "timeZone": "Asia/Shanghai"},
+        "extendedProperties": {
+            "private": {
+                "i2a_k": permit.idempotency_key,
+                "i2a_h": permit.approved_payload_hash,
+                "i2a_a": permit.action_id,
+            }
+        },
+    }
+
+
+@pytest.mark.asyncio
+async def test_production_insert_accepts_realistic_event_and_sends_safe_body() -> None:
+    permit = _authorized_calendar_permit()
+    service = FakeGoogleCalendarService(_realistic_event_response(permit))
+    executor = GoogleCalendarWriteExecutor(
+        GoogleCalendarClient(service),
+        calendar_id="trusted-calendar@example.com",
+        enabled=True,
+    )
+
+    result = await executor.execute(permit)
+
+    assert result.status == "succeeded"
+    assert result.resource is not None
+    assert result.resource.resource_id == permit.idempotency_key
+    assert service.insert_kwargs is not None
+    assert service.insert_kwargs["calendarId"] == "trusted-calendar@example.com"
+    assert service.insert_kwargs["eventId"] == permit.idempotency_key
+    assert service.insert_kwargs["sendUpdates"] == "none"
+    assert "fields" not in service.insert_kwargs
+    body = service.insert_kwargs["body"]
+    assert isinstance(body, dict)
+    assert body["id"] == permit.idempotency_key
+    assert body["summary"] == "项目评审"
+    assert body["description"] == "评审材料"
+    assert body["start"] == {
+        "dateTime": B_START.isoformat(),
+        "timeZone": "Asia/Shanghai",
+    }
+    assert body["end"] == {
+        "dateTime": B_END.isoformat(),
+        "timeZone": "Asia/Shanghai",
+    }
+    assert body["extendedProperties"] == {
+        "private": {
+            "i2a_k": permit.idempotency_key,
+            "i2a_h": permit.approved_payload_hash,
+            "i2a_a": permit.action_id,
+        }
+    }
+    assert "attendees" not in body
+    assert "conferenceData" not in body
+
+
+def test_production_insert_missing_id_exposes_sanitized_response_diagnostics() -> None:
+    service = FakeGoogleCalendarService({"kind": "calendar#event"})
+    client = GoogleCalendarClient(service)
+
+    with pytest.raises(GoogleCalendarInvalidResponseError) as raised:
+        client.insert_event(
+            calendar_id="trusted-calendar@example.com",
+            event_id="deterministic-event-id",
+            body={"id": "deterministic-event-id"},
+        )
+
+    diagnostics = raised.value.diagnostics
+    assert isinstance(diagnostics, GoogleCalendarResponseDiagnostics)
+    assert diagnostics.as_dict() == {
+        "http_status": 200,
+        "content_type": "application/json",
+        "decoded_type": "dict",
+        "top_level_keys": ("kind",),
+        "has_id": False,
+        "has_status": False,
+        "has_htmlLink": False,
+        "has_error": False,
+    }
+
+
+def test_production_insert_non_json_2xx_exposes_decoding_invariant() -> None:
+    service = FakeGoogleCalendarService("<html>proxy response</html>")
+    service.insert_request.http_response = FakeHttpResponse(200, "text/html")
+    client = GoogleCalendarClient(service)
+
+    with pytest.raises(GoogleCalendarInvalidResponseError) as raised:
+        client.insert_event(
+            calendar_id="trusted-calendar@example.com",
+            event_id="deterministic-event-id",
+            body={"id": "deterministic-event-id"},
+        )
+
+    diagnostics = raised.value.diagnostics
+    assert isinstance(diagnostics, GoogleCalendarResponseDiagnostics)
+    assert diagnostics.http_status == 200
+    assert diagnostics.content_type == "text/html"
+    assert diagnostics.decoded_type == "str"
+    assert diagnostics.top_level_keys == ()
+    assert diagnostics.has_id is False
+    assert diagnostics.has_error is False
+
+
+@pytest.mark.asyncio
+async def test_returned_event_id_mismatch_fails_closed() -> None:
+    permit = _authorized_calendar_permit()
+    service = FakeGoogleCalendarService(
+        _realistic_event_response(permit, event_id="another-event-id")
+    )
+    executor = GoogleCalendarWriteExecutor(
+        GoogleCalendarClient(service),
+        calendar_id="trusted-calendar@example.com",
+        enabled=True,
+    )
+
+    result = await executor.execute(permit)
+
+    assert result.status == "failed"
+    assert result.error_code == "google_calendar_identity_mismatch"
+
+
+def test_google_error_response_is_provider_error_with_safe_metadata() -> None:
+    error = HttpError(
+        FakeHttpResponse(400),
+        b'{"error":{"code":400,"message":"invalid request"}}',
+    )
+    client = GoogleCalendarClient(
+        FakeGoogleCalendarService(
+            insert_error=error,
+        )
+    )
+
+    with pytest.raises(GoogleCalendarApiError) as raised:
+        client.insert_event(
+            calendar_id="trusted-calendar@example.com",
+            event_id="deterministic-event-id",
+            body={"id": "deterministic-event-id"},
+        )
+
+    assert raised.value.status == 400
+    diagnostics = raised.value.diagnostics
+    assert isinstance(diagnostics, GoogleCalendarResponseDiagnostics)
+    assert diagnostics.http_status == 400
+    assert diagnostics.content_type == "application/json"
+    assert diagnostics.decoded_type == "dict"
+    assert diagnostics.top_level_keys == ("error",)
+    assert diagnostics.has_error is True
+
+
+@pytest.mark.asyncio
+async def test_409_reconciles_same_id_without_second_insert() -> None:
+    permit = _authorized_calendar_permit()
+    error = HttpError(
+        FakeHttpResponse(409),
+        b'{"error":{"code":409,"message":"already exists"}}',
+    )
+    service = FakeGoogleCalendarService(
+        insert_error=error,
+        get_response=_realistic_event_response(permit),
+    )
+    executor = GoogleCalendarWriteExecutor(
+        GoogleCalendarClient(service),
+        calendar_id="trusted-calendar@example.com",
+        enabled=True,
+    )
+
+    result = await executor.execute(permit)
+
+    assert result.status == "succeeded"
+    assert service.insert_kwargs is not None
+    assert service.insert_kwargs["eventId"] == permit.idempotency_key
+    assert service.get_kwargs == {
+        "calendarId": "trusted-calendar@example.com",
+        "eventId": permit.idempotency_key,
+    }
 
 
 @pytest.mark.asyncio

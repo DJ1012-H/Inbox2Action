@@ -224,7 +224,11 @@ def _succeeded_event(
     event: Mapping[str, object],
 ) -> ExecutionResult:
     event_id = event.get("id")
-    if event_id != permit.idempotency_key or not _identity_matches(event, permit):
+    if (
+        not isinstance(event_id, str)
+        or event_id != permit.idempotency_key
+        or not _identity_matches(event, permit)
+    ):
         raise ValueError("event identity does not match approved operation")
     url = event.get("htmlLink")
     safe_url = url if isinstance(url, str) and url.startswith("https://") else None

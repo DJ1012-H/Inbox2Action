@@ -195,6 +195,7 @@ def test_tool_loop_requests_require_a_tool_call() -> None:
     )
 
     assert completions.calls[0]["tool_choice"] == "required"
+    assert completions.calls[0]["parallel_tool_calls"] is False
 
 
 def test_thinking_mode_rejects_tool_call_without_reasoning_content() -> None:

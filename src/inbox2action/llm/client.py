@@ -76,6 +76,10 @@ class OpenAIChatClient:
         if tools is not None:
             request["tools"] = [dict(tool) for tool in tools]
             request["tool_choice"] = "required"
+            # ToolLoop executes one validated tool per model turn. Disable
+            # provider-side parallel tool calls so that contract is enforced
+            # at the request boundary as well as in the fail-closed loop.
+            request["parallel_tool_calls"] = False
         request["extra_body"] = {
             "thinking": {"type": self._settings.llm_thinking_mode}
         }

@@ -13,6 +13,7 @@ from .errors import (
     GoogleCalendarError,
     GoogleCalendarInvalidResponseError,
     GoogleCalendarNotFoundError,
+    GoogleCalendarResponseDiagnostics,
     GoogleCalendarTransportError,
 )
 from .executor import GoogleCalendarWriteExecutor
@@ -30,6 +31,7 @@ __all__ = [
     "GoogleCalendarFreeBusyAdapter",
     "GoogleCalendarInvalidResponseError",
     "GoogleCalendarNotFoundError",
+    "GoogleCalendarResponseDiagnostics",
     "GoogleCalendarTransportError",
     "GoogleCalendarWriteExecutor",
 ]

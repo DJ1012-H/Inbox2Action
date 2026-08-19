@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -16,6 +16,7 @@ from inbox2action.evaluation.triage_final import (
     enforce_triage_final,
     parse_triage_response_final,
 )
+from inbox2action.llm.models import ChatCompletionResult
 from inbox2action.llm.protocols import ChatClientPort
 from inbox2action.stage3.contracts import (
     ActionProposal,
@@ -26,6 +27,48 @@ from inbox2action.stage3.normalization import normalize_email
 from inbox2action.stage6.planning import Stage6PlanningError
 from inbox2action.stage8.candidates import extract_authorized_intervals
 from inbox2action.tools.registry import ToolRegistry
+
+_SINGLE_TOOL_REPAIR_MESSAGE = """
+The previous response contained multiple tool calls. Do not execute or bundle
+parallel actions. Return exactly one call to exactly one currently exposed Tool
+for this turn; wait for its Observation before choosing the next Tool.
+""".strip()
+
+
+class _SingleToolTurnModel:
+    """Repair one provider-side parallel tool response before execution."""
+
+    def __init__(self, delegate: ChatClientPort) -> None:
+        self._delegate = delegate
+
+    def complete(
+        self,
+        messages: Sequence[Mapping[str, object]],
+        *,
+        response_format: Mapping[str, object] | None = None,
+        tools: Sequence[Mapping[str, object]] | None = None,
+    ) -> ChatCompletionResult:
+        response = self._delegate.complete(
+            messages,
+            response_format=response_format,
+            tools=tools,
+        )
+        if tools is None or len(response.tool_calls) <= 1:
+            return response
+        repair_messages = [dict(message) for message in messages]
+        repair: dict[str, object] = {
+            "role": "system",
+            "content": _SINGLE_TOOL_REPAIR_MESSAGE,
+        }
+        if repair_messages and repair_messages[0].get("role") == "system":
+            repair_messages.insert(1, repair)
+        else:
+            repair_messages.insert(0, repair)
+        return self._delegate.complete(
+            repair_messages,
+            response_format=response_format,
+            tools=tools,
+        )
 
 
 class CalendarActionAgent:
@@ -66,7 +109,7 @@ class CalendarActionAgent:
             },
         )
         result = ToolLoop(
-            self._model,
+            _SingleToolTurnModel(self._model),
             registry,
             max_tool_steps=self._max_tool_steps,
         ).run(
