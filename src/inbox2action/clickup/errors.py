@@ -58,3 +58,9 @@ class ClickUpInvalidResponseError(ClickUpError):
     """ClickUp returned invalid JSON or an unexpected response shape."""
 
     code = "invalid_response"
+
+
+class ClickUpInvalidRequestError(ClickUpInvalidResponseError):
+    """ClickUp rejected a deterministic request validation failure."""
+
+    code = "invalid_request"

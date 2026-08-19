@@ -8,6 +8,7 @@ from inbox2action.stage3.contracts import (
     EmailEnvelope,
     ExecutionPermit,
     ExecutionResult,
+    ExternalResourceRef,
     NormalizedEmail,
     Stage2PlanningBundle,
     Stage3WorkflowStatus,
@@ -22,6 +23,7 @@ from inbox2action.stage3.execution import (
     ExecutionLedger,
     ExecutionStartOutcome,
     InMemoryExecutionLedger,
+    ReconciliationExecutor,
     WriteExecutor,
 )
 from inbox2action.stage3.fixtures import (
@@ -44,6 +46,7 @@ from inbox2action.stage3.workflow import (
     InvalidTransitionError,
     ParameterResolutionError,
     authorize_execution,
+    authorize_reconciliation,
     prepare_workflow_state,
 )
 
@@ -62,6 +65,7 @@ __all__ = [
     "ExecutionPermit",
     "ExecutionResult",
     "ExecutionStartOutcome",
+    "ExternalResourceRef",
     "FixtureObservation",
     "FixtureToolAdapter",
     "FixtureToolError",
@@ -71,6 +75,7 @@ __all__ = [
     "NormalizationError",
     "NormalizedEmail",
     "ParameterResolutionError",
+    "ReconciliationExecutor",
     "Stage2PlanningBundle",
     "Stage3WorkflowStatus",
     "UnknownFixtureToolError",
@@ -79,6 +84,7 @@ __all__ = [
     "WriteExecutor",
     "action_idempotency_key",
     "authorize_execution",
+    "authorize_reconciliation",
     "build_email_action_graph",
     "normalize_email",
     "payload_hash",

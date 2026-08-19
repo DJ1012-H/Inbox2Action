@@ -16,6 +16,17 @@ Stage 2 proposal handoff, and a local approval API/UI over the existing
 LangGraph workflow. Real Gmail-to-DeepSeek-to-PostgreSQL acceptance remains
 explicitly opt-in and is not claimed by the offline tests.
 
+Stage 7 adds the durable ClickUp write boundary: `save_task_proposal` is
+reviewed through HITL, bound to an `ExecutionPermit`, claimed in the durable
+ledger, and only then translated into one ClickUp Task. The provider marker is
+the unique `Inbox2Action Key` text Custom Field discovered at startup; its
+value is the permit's stable idempotency key. Ambiguous POST outcomes use
+bounded GET-only reconciliation, and UNKNOWN executions have a restart-only
+reconciliation path. Provider-disabled, unapproved, rejected, stale, missing
+or invalid marker configuration remains fail-closed. Live Stage 7 acceptance
+is pending the configured test List having that Custom Field; no live Task is
+claimed by the offline or PostgreSQL tests.
+
 Stage 2 passed its frozen real-model acceptance on 2026-08-09. The final
 `deepseek-v4-flash` formal60 batch achieved:
 
@@ -43,10 +54,10 @@ multi-action execution. Stage 4 adds PostgreSQL persistence, LangGraph
 checkpoint/store integration, and a durable execution claim ledger. Stage 5
 provides the separately gated Gmail readonly OAuth transport; Stage 6 connects
 that transport to the existing Agent boundary. Gmail writes, Calendar,
-ClickUp, and all real provider writes remain out of scope until their later
-stages. Stage 6 only exposes local proposal Tools and never enables real
-provider writes. See
-`docs/stage-6-gmail-hitl.md` for the bounded worker and approval UI.
+ClickUp and all other real provider writes remain separately gated. Stage 6
+only exposes local proposal Tools and never enables real provider writes. See
+`docs/stage-6-gmail-hitl.md` for the bounded worker and approval UI, and
+`docs/stage-7-clickup-durable-hitl.md` for the ClickUp boundary.
 
 The Gmail transport setup and manual commands are documented in
 `docs/stage-5-gmail-readonly-oauth.md`. Evaluation fixtures remain under

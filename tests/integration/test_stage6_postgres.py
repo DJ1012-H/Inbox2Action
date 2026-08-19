@@ -154,7 +154,7 @@ async def test_stage6_postgres_interrupt_reopen_and_approve() -> None:
 
         assert result[0].status == "waiting_for_approval"
         pending = await index.list_pending()
-        assert len(pending) == 1
+        assert any(entry.thread_id == result[0].thread_id for entry in pending)
 
         async with open_langgraph_postgres(database_url) as reopened_runtime:
             reopened_graph = build_email_action_graph(
@@ -164,7 +164,7 @@ async def test_stage6_postgres_interrupt_reopen_and_approve() -> None:
                 write_executor=executor,
             )
             service = ApprovalService(reopened_graph, index)
-            view = (await service.list_pending())[0]
+            view = await service.get_workflow(result[0].thread_id)
             completed = await service.decide(
                 view["thread_id"],
                 operation="approve",

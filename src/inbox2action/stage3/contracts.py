@@ -5,8 +5,9 @@ import json
 from collections.abc import Mapping
 from enum import Enum
 from typing import Literal
+from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from inbox2action.evaluation.policy_v3 import (
     ActionPlanV3,
@@ -212,6 +213,56 @@ class AuditEvent(BaseModel):
     error_code: str | None = Field(default=None, max_length=64)
 
 
+class ExternalResourceRef(BaseModel):
+    """Provider-neutral reference to a resource created by an approved action."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    provider: str = Field(
+        min_length=1,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9._:-]+$",
+    )
+    resource_type: str = Field(
+        min_length=1,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9._:-]+$",
+    )
+    resource_id: str = Field(min_length=1, max_length=256)
+    url: str | None = Field(default=None, max_length=2048)
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        parsed = urlsplit(value)
+        if (
+            parsed.scheme != "https"
+            or parsed.hostname is None
+            or parsed.username is not None
+            or parsed.password is not None
+        ):
+            raise ValueError("resource URL must be an absolute HTTPS URL")
+        return value
+
+
+class ExecutionResult(BaseModel):
+    """Provider outcome; unknown means reconciliation is required."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["succeeded", "failed", "unknown"]
+    error_code: str | None = Field(default=None, max_length=64)
+    resource: ExternalResourceRef | None = None
+
+    @model_validator(mode="after")
+    def validate_resource_status(self) -> ExecutionResult:
+        if self.status != "succeeded" and self.resource is not None:
+            raise ValueError("failed or unknown execution cannot carry a resource")
+        return self
+
+
 class WorkflowAction(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -219,6 +270,7 @@ class WorkflowAction(BaseModel):
     status: ActionStatus = ActionStatus.PROPOSED
     approval: ApprovalRecord | None = None
     error_code: str | None = Field(default=None, max_length=64)
+    result: ExecutionResult | None = None
 
 
 class Stage2PlanningBundle(BaseModel):
@@ -322,15 +374,6 @@ class ExecutionPermit(BaseModel):
         max_length=64,
         pattern=r"^[0-9a-f]{64}$",
     )
-
-
-class ExecutionResult(BaseModel):
-    """Provider outcome; unknown means reconciliation is required."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    status: Literal["succeeded", "failed", "unknown"]
-    error_code: str | None = Field(default=None, max_length=64)
 
 
 def payload_hash(proposal: ActionProposal) -> str:

@@ -19,6 +19,11 @@ class ExecutionStartOutcome(str, Enum):
     BLOCKED_UNKNOWN = "blocked_unknown"
 
 
+class ReconciliationExecutor(Protocol):
+    async def reconcile(self, permit: ExecutionPermit) -> ExecutionResult:
+        """Resolve an UNKNOWN provider attempt using readonly reconciliation only."""
+
+
 class ExecutionLedger(Protocol):
     async def claim(self, permit: ExecutionPermit) -> ExecutionClaimOutcome:
         """Durably claim an idempotency key before a provider side effect."""
@@ -36,6 +41,19 @@ class ExecutionLedger(Protocol):
     ) -> ExecutionStartOutcome:
         """Atomically start a fresh claim or classify a replay."""
 
+    async def get_result(
+        self,
+        permit: ExecutionPermit,
+    ) -> ExecutionResult | None:
+        """Recover a terminal result bound to this exact approved permit."""
+
+    async def reconcile_success(
+        self,
+        permit: ExecutionPermit,
+        result: ExecutionResult,
+    ) -> None:
+        """Promote one UNKNOWN execution only after readonly reconciliation succeeds."""
+
 
 class WriteExecutor(Protocol):
     async def execute(self, permit: ExecutionPermit) -> ExecutionResult:
@@ -46,19 +64,23 @@ class InMemoryExecutionLedger:
     """Deterministic ledger with the same no-replay decisions as PostgreSQL."""
 
     def __init__(self) -> None:
-        self._records: dict[str, ExecutionResult | LiteralStatus] = {}
+        self._records: dict[str, _InMemoryRecord] = {}
         self._lock = asyncio.Lock()
 
     async def claim(self, permit: ExecutionPermit) -> ExecutionClaimOutcome:
         async with self._lock:
             if permit.idempotency_key not in self._records:
-                self._records[permit.idempotency_key] = "claimed"
+                self._records[permit.idempotency_key] = _InMemoryRecord(
+                    permit=permit,
+                    value="claimed",
+                )
                 return ExecutionClaimOutcome.CLAIMED
-            result = self._records[permit.idempotency_key]
-            if isinstance(result, ExecutionResult) and result.status == "succeeded":
+            record = self._records[permit.idempotency_key]
+            _validate_binding(record.permit, permit)
+            if isinstance(record.value, ExecutionResult) and record.value.status == "succeeded":
                 return ExecutionClaimOutcome.ALREADY_SUCCEEDED
-            if isinstance(result, ExecutionResult) and result.status == "failed":
-                self._records[permit.idempotency_key] = "claimed"
+            if isinstance(record.value, ExecutionResult) and record.value.status == "failed":
+                record.value = "claimed"
                 return ExecutionClaimOutcome.CLAIMED
             return ExecutionClaimOutcome.BLOCKED_UNKNOWN
 
@@ -67,12 +89,15 @@ class InMemoryExecutionLedger:
         permit: ExecutionPermit,
     ) -> ExecutionStartOutcome:
         async with self._lock:
-            current = self._records.get(permit.idempotency_key)
-            if isinstance(current, ExecutionResult) and current.status == "succeeded":
-                return ExecutionStartOutcome.ALREADY_SUCCEEDED
-            if current != "claimed":
+            record = self._records.get(permit.idempotency_key)
+            if record is None:
                 return ExecutionStartOutcome.BLOCKED_UNKNOWN
-            self._records[permit.idempotency_key] = "executing"
+            _validate_binding(record.permit, permit)
+            if isinstance(record.value, ExecutionResult) and record.value.status == "succeeded":
+                return ExecutionStartOutcome.ALREADY_SUCCEEDED
+            if record.value != "claimed":
+                return ExecutionStartOutcome.BLOCKED_UNKNOWN
+            record.value = "executing"
             return ExecutionStartOutcome.STARTED
 
     async def complete(
@@ -81,20 +106,74 @@ class InMemoryExecutionLedger:
         result: ExecutionResult,
     ) -> None:
         async with self._lock:
-            if permit.idempotency_key not in self._records:
+            record = self._records.get(permit.idempotency_key)
+            if record is None:
                 raise RuntimeError("execution result has no durable claim")
-            current = self._records[permit.idempotency_key]
-            if isinstance(current, ExecutionResult):
-                if current == result:
+            _validate_binding(record.permit, permit)
+            if isinstance(record.value, ExecutionResult):
+                if record.value == result:
                     return
                 raise RuntimeError("execution claim already has a different result")
-            if current != "executing":
+            if record.value != "executing":
                 raise RuntimeError("execution claim was not started")
-            self._records[permit.idempotency_key] = result
+            record.value = result
+
+    async def reconcile_success(
+        self,
+        permit: ExecutionPermit,
+        result: ExecutionResult,
+    ) -> None:
+        if result.status != "succeeded" or result.resource is None:
+            raise RuntimeError("reconciliation must provide a succeeded resource")
+        async with self._lock:
+            record = self._records.get(permit.idempotency_key)
+            if record is None:
+                raise RuntimeError("execution result has no durable claim")
+            _validate_binding(record.permit, permit)
+            if isinstance(record.value, ExecutionResult):
+                if record.value.status == "succeeded" and record.value == result:
+                    return
+                if record.value.status == "unknown":
+                    record.value = result
+                    return
+                raise RuntimeError("execution claim is not eligible for reconciliation")
+            raise RuntimeError("execution claim is not eligible for reconciliation")
+
+    async def get_result(self, permit: ExecutionPermit) -> ExecutionResult | None:
+        async with self._lock:
+            record = self._records.get(permit.idempotency_key)
+            if record is None:
+                return None
+            _validate_binding(record.permit, permit)
+            return record.value if isinstance(record.value, ExecutionResult) else None
 
     def result(self, idempotency_key: str) -> ExecutionResult | None:
-        result = self._records.get(idempotency_key)
-        return result if isinstance(result, ExecutionResult) else None
+        record = self._records.get(idempotency_key)
+        if record is None:
+            return None
+        return record.value if isinstance(record.value, ExecutionResult) else None
+
+
+class _InMemoryRecord:
+    def __init__(
+        self,
+        *,
+        permit: ExecutionPermit,
+        value: ExecutionResult | LiteralStatus,
+    ) -> None:
+        self.permit = permit
+        self.value = value
+
+
+def _validate_binding(expected: ExecutionPermit, actual: ExecutionPermit) -> None:
+    if (
+        expected.idempotency_key != actual.idempotency_key
+        or
+        expected.thread_id != actual.thread_id
+        or expected.action_id != actual.action_id
+        or expected.approved_payload_hash != actual.approved_payload_hash
+    ):
+        raise RuntimeError("idempotency key is bound to another action payload")
 
 
 LiteralStatus = Literal["claimed", "executing"]

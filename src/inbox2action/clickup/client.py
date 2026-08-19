@@ -7,17 +7,22 @@ import math
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Protocol
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote, urlsplit
 from urllib.request import Request, urlopen
 
 from pydantic import SecretStr
+
+from inbox2action.tools.schemas import CreateClickUpTaskArgs
 
 from .errors import (
     ClickUpAuthenticationError,
     ClickUpConfigurationError,
     ClickUpError,
     ClickUpForbiddenError,
+    ClickUpInvalidRequestError,
     ClickUpInvalidResponseError,
     ClickUpNotFoundError,
     ClickUpRateLimitedError,
@@ -58,10 +63,28 @@ class ClickUpTask:
 
     task_id: str
     name: str
+    url: str | None = None
+
+
+@dataclass(frozen=True)
+class ClickUpCustomField:
+    """The bounded custom-field metadata needed by Stage 7."""
+
+    field_id: str
+    name: str
+    field_type: str
+
+
+@dataclass(frozen=True)
+class ClickUpCreatedTask:
+    """The minimum bounded response from a successful create call."""
+
+    task_id: str
+    url: str | None
 
 
 class ClickUpClient:
-    """Access only the ClickUp user and list-task GET endpoints."""
+    """Access the bounded ClickUp readonly and create-task endpoints."""
 
     def __init__(
         self,
@@ -87,6 +110,7 @@ class ClickUpClient:
         self._list_id = normalized_list_id
         self._timeout_seconds = float(timeout_seconds)
         self._request_executor = request_executor or _default_request_executor
+        self._idempotency_field_id: str | None = None
 
     def get_authorized_user(self) -> ClickUpUser:
         """Return the bounded identity from GET /user."""
@@ -125,17 +149,187 @@ class ClickUpClient:
             name = _bounded_text(task.get("name"))
             if task_id is None or name is None:
                 raise ClickUpInvalidResponseError()
-            summaries.append(ClickUpTask(task_id=task_id, name=name))
+            url = task.get("url")
+            if url is not None and (
+                not isinstance(url, str) or not _valid_task_url(url)
+            ):
+                url = None
+            summaries.append(ClickUpTask(task_id=task_id, name=name, url=url))
         return summaries
 
+    def get_list_custom_fields(self) -> list[ClickUpCustomField]:
+        """Return bounded custom-field metadata from the configured List."""
+
+        payload = self._get_json(f"/list/{self._list_id}/field")
+        if not isinstance(payload, dict):
+            raise ClickUpInvalidResponseError()
+        fields = payload.get("fields")
+        if not isinstance(fields, list) or len(fields) > _MAX_TASKS:
+            raise ClickUpInvalidResponseError()
+
+        result: list[ClickUpCustomField] = []
+        for field in fields:
+            if not isinstance(field, dict):
+                raise ClickUpInvalidResponseError()
+            field_id = _bounded_identifier(field.get("id"))
+            name = _bounded_text(field.get("name"))
+            field_type = _bounded_text(field.get("type"))
+            if field_id is None or name is None or field_type is None:
+                raise ClickUpInvalidResponseError()
+            result.append(
+                ClickUpCustomField(
+                    field_id=field_id,
+                    name=name,
+                    field_type=field_type,
+                )
+            )
+        return result
+
+    def resolve_idempotency_field(self) -> str:
+        """Discover and cache the unique text field used for Stage 7 idempotency."""
+
+        if self._idempotency_field_id is not None:
+            return self._idempotency_field_id
+        matches = [
+            field
+            for field in self.get_list_custom_fields()
+            if field.name == "Inbox2Action Key"
+        ]
+        if len(matches) != 1 or matches[0].field_type not in {"text", "short_text"}:
+            raise ClickUpConfigurationError()
+        self._idempotency_field_id = matches[0].field_id
+        return matches[0].field_id
+
+    def find_tasks_by_idempotency_key(self, idempotency_key: str) -> list[ClickUpTask]:
+        """Find tasks by the exact Stage 7 custom-field marker."""
+
+        field_id = self._idempotency_field_id
+        if field_id is None:
+            raise ClickUpConfigurationError()
+        normalized_key = _bounded_text(idempotency_key)
+        if normalized_key is None:
+            raise ClickUpConfigurationError()
+        custom_fields = json.dumps(
+            [
+                {
+                    "field_id": field_id,
+                    "operator": "==",
+                    "value": normalized_key,
+                }
+            ],
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        payload = self._get_json(
+            f"/list/{self._list_id}/task?archived=false&page=0&custom_fields="
+            f"{quote(custom_fields, safe='')}"
+        )
+        if not isinstance(payload, dict):
+            raise ClickUpInvalidResponseError()
+        tasks = payload.get("tasks")
+        if not isinstance(tasks, list) or len(tasks) > _MAX_TASKS:
+            raise ClickUpInvalidResponseError()
+        summaries: list[ClickUpTask] = []
+        for task in tasks:
+            if not isinstance(task, dict):
+                raise ClickUpInvalidResponseError()
+            task_id = _bounded_identifier(task.get("id"))
+            name = _bounded_text(task.get("name"))
+            if task_id is None or name is None:
+                raise ClickUpInvalidResponseError()
+            url = task.get("url")
+            if url is not None and (
+                not isinstance(url, str) or not _valid_task_url(url)
+            ):
+                url = None
+            summaries.append(ClickUpTask(task_id=task_id, name=name, url=url))
+        return summaries
+
+    def create_task(
+        self,
+        *,
+        title: str,
+        description: str,
+        due_at: datetime | str | None,
+        priority: str,
+        idempotency_key: str,
+    ) -> ClickUpCreatedTask:
+        """Create exactly one task from a validated task proposal."""
+
+        field_id = self._idempotency_field_id
+        if field_id is None:
+            raise ClickUpConfigurationError()
+        normalized_key = _bounded_text(idempotency_key)
+        if normalized_key is None:
+            raise ClickUpConfigurationError()
+
+        try:
+            proposal = CreateClickUpTaskArgs.model_validate(
+                {
+                    "title": title,
+                    "description": description,
+                    "due_at": due_at,
+                    "priority": priority,
+                }
+            )
+        except ValueError:
+            raise ClickUpConfigurationError() from None
+
+        body: dict[str, object] = {
+            "name": proposal.title,
+            "description": proposal.description,
+            "priority": {"high": 2, "medium": 3, "low": 4}[proposal.priority],
+            "custom_fields": [{"id": field_id, "value": normalized_key}],
+        }
+        if proposal.due_at is not None:
+            body["due_date"] = _epoch_milliseconds(proposal.due_at)
+
+        payload = self._request_json(
+            f"/list/{self._list_id}/task",
+            method="POST",
+            body=body,
+        )
+        if not isinstance(payload, dict):
+            raise ClickUpInvalidResponseError()
+        task_id = _bounded_text(payload.get("id"))
+        if task_id is None:
+            raise ClickUpInvalidResponseError()
+        url = payload.get("url")
+        if url is not None and (not isinstance(url, str) or not _valid_task_url(url)):
+            raise ClickUpInvalidResponseError()
+        return ClickUpCreatedTask(task_id=task_id, url=url)
+
     def _get_json(self, path: str) -> object:
+        return self._request_json(path, method="GET")
+
+    def _request_json(
+        self,
+        path: str,
+        *,
+        method: str,
+        body: dict[str, object] | None = None,
+    ) -> object:
+        encoded_body = (
+            None
+            if body is None
+            else json.dumps(
+                body,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        )
+        headers = {
+            "Accept": "application/json",
+            "Authorization": self._api_token,
+        }
+        if encoded_body is not None:
+            headers["Content-Type"] = "application/json"
         request = Request(
             f"{API_BASE_URL}{path}",
-            headers={
-                "Accept": "application/json",
-                "Authorization": self._api_token,
-            },
-            method="GET",
+            data=encoded_body,
+            headers=headers,
+            method=method,
         )
         try:
             response = self._request_executor(request, self._timeout_seconds)
@@ -213,6 +407,8 @@ def _response_status(response: _RawResponse) -> int:
 
 
 def _map_http_status(status: int) -> ClickUpError:
+    if status == 400:
+        return ClickUpInvalidRequestError()
     if status == 401:
         return ClickUpAuthenticationError()
     if status == 403:
@@ -248,4 +444,21 @@ def _clean_text(value: str) -> str:
     return "".join(
         " " if ord(character) < 32 or ord(character) == 127 else character
         for character in value
+    )
+
+
+def _epoch_milliseconds(value: datetime) -> int:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ClickUpConfigurationError()
+    return int(value.timestamp() * 1000)
+
+
+def _valid_task_url(value: str) -> bool:
+    parsed = urlsplit(value)
+    return (
+        parsed.scheme == "https"
+        and parsed.hostname == "app.clickup.com"
+        and parsed.username is None
+        and parsed.password is None
+        and bool(parsed.path)
     )

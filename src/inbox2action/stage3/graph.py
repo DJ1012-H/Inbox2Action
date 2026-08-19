@@ -15,6 +15,7 @@ from inbox2action.stage3.contracts import (
     ApprovalRecord,
     ApprovalStatus,
     AuditEvent,
+    ExecutionPermit,
     ExecutionResult,
     Stage3WorkflowStatus,
     WorkflowAction,
@@ -26,12 +27,14 @@ from inbox2action.stage3.execution import (
     ExecutionLedger,
     ExecutionStartOutcome,
     InMemoryExecutionLedger,
+    ReconciliationExecutor,
     WriteExecutor,
 )
 from inbox2action.stage3.workflow import (
     ApprovalError,
     InvalidTransitionError,
     authorize_execution,
+    authorize_reconciliation,
     replace_workflow_action,
     workflow_action_for,
 )
@@ -97,10 +100,14 @@ def _validate_start_node(
 
 def _route_after_start(
     graph_state: EmailActionGraphState,
-) -> Literal["select_next_action", "finalize"]:
+) -> Literal["select_next_action", "execute_write", "reconcile_unknown", "finalize"]:
     state = _state(graph_state)
     if state.status is Stage3WorkflowStatus.ACTION_REQUIRED:
         return "select_next_action"
+    if state.status is Stage3WorkflowStatus.EXECUTION_CLAIMED:
+        return "execute_write"
+    if state.status is Stage3WorkflowStatus.UNKNOWN and state.current_action_id is not None:
+        return "reconcile_unknown"
     return "finalize"
 
 
@@ -343,10 +350,71 @@ def build_email_action_graph(
     store: BaseStore | None = None,
     execution_ledger: ExecutionLedger | None = None,
     write_executor: WriteExecutor | None = None,
+    reconciliation_executor: ReconciliationExecutor | None = None,
 ):
     """Compile the single-source EmailActionAgent workflow."""
 
     ledger = execution_ledger or InMemoryExecutionLedger()
+
+    async def recover_execution_result(
+        state: WorkflowState,
+        action_id: str,
+        permit: ExecutionPermit,
+    ) -> EmailActionGraphState:
+        result = await ledger.get_result(permit)
+        action = workflow_action_for(state, action_id)
+        if result is None:
+            replacement = action.model_copy(
+                update={
+                    "status": ActionStatus.UNKNOWN,
+                    "error_code": "execution_result_missing",
+                    "result": None,
+                }
+            )
+            return _mark_action(
+                state,
+                replacement,
+                workflow_status=Stage3WorkflowStatus.UNKNOWN,
+                event_type="execution_recovery_failed",
+                event_status="unknown",
+                idempotency_key=permit.idempotency_key,
+            )
+        if result.status != "succeeded":
+            replacement = action.model_copy(
+                update={
+                    "status": ActionStatus.UNKNOWN,
+                    "error_code": "execution_result_not_succeeded",
+                    "result": result,
+                }
+            )
+            return _mark_action(
+                state,
+                replacement,
+                workflow_status=Stage3WorkflowStatus.UNKNOWN,
+                event_type="execution_recovery_failed",
+                event_status="unknown",
+                idempotency_key=permit.idempotency_key,
+            )
+
+        replacement = action.model_copy(
+            update={
+                "status": ActionStatus.COMPLETED,
+                "error_code": result.error_code,
+                "result": result,
+            }
+        )
+        completed = list(dict.fromkeys([*state.completed_action_ids, action_id]))
+        update = _mark_action(
+            state,
+            replacement,
+            workflow_status=Stage3WorkflowStatus.ACTION_REQUIRED,
+            event_type="execution_recovered",
+            event_status="already_succeeded",
+            idempotency_key=permit.idempotency_key,
+        )
+        update["completed_action_ids"] = completed
+        update["current_action_id"] = None
+        return update
 
     async def claim_execution_node(
         graph_state: EmailActionGraphState,
@@ -371,19 +439,7 @@ def build_email_action_graph(
                 idempotency_key=permit.idempotency_key,
             )
         if outcome is ExecutionClaimOutcome.ALREADY_SUCCEEDED:
-            replacement = action.model_copy(update={"status": ActionStatus.COMPLETED})
-            completed = list(dict.fromkeys([*state.completed_action_ids, action_id]))
-            update = _mark_action(
-                state,
-                replacement,
-                workflow_status=Stage3WorkflowStatus.ACTION_REQUIRED,
-                event_type="execution_recovered",
-                event_status="already_succeeded",
-                idempotency_key=permit.idempotency_key,
-            )
-            update["completed_action_ids"] = completed
-            update["current_action_id"] = None
-            return update
+            return await recover_execution_result(state, action_id, permit)
         replacement = action.model_copy(
             update={
                 "status": ActionStatus.UNKNOWN,
@@ -419,20 +475,7 @@ def build_email_action_graph(
         permit = authorize_execution(state, action_id)
         start_outcome = await ledger.begin_execution(permit)
         if start_outcome is ExecutionStartOutcome.ALREADY_SUCCEEDED:
-            action = workflow_action_for(state, action_id)
-            replacement = action.model_copy(update={"status": ActionStatus.COMPLETED})
-            completed = list(dict.fromkeys([*state.completed_action_ids, action_id]))
-            update = _mark_action(
-                state,
-                replacement,
-                workflow_status=Stage3WorkflowStatus.ACTION_REQUIRED,
-                event_type="execution_recovered",
-                event_status="already_succeeded",
-                idempotency_key=permit.idempotency_key,
-            )
-            update["completed_action_ids"] = completed
-            update["current_action_id"] = None
-            return update
+            return await recover_execution_result(state, action_id, permit)
         if start_outcome is ExecutionStartOutcome.BLOCKED_UNKNOWN:
             action = workflow_action_for(state, action_id)
             replacement = action.model_copy(
@@ -465,7 +508,13 @@ def build_email_action_graph(
         await ledger.complete(permit, result)
         action = workflow_action_for(state, action_id)
         if result.status == "succeeded":
-            replacement = action.model_copy(update={"status": ActionStatus.COMPLETED})
+            replacement = action.model_copy(
+                update={
+                    "status": ActionStatus.COMPLETED,
+                    "error_code": result.error_code,
+                    "result": result,
+                }
+            )
             completed = list(dict.fromkeys([*state.completed_action_ids, action_id]))
             update = _mark_action(
                 state,
@@ -487,7 +536,11 @@ def build_email_action_graph(
             else Stage3WorkflowStatus.UNKNOWN
         )
         replacement = action.model_copy(
-            update={"status": action_status, "error_code": result.error_code}
+            update={
+                "status": action_status,
+                "error_code": result.error_code,
+                "result": result,
+            }
         )
         return _mark_action(
             state,
@@ -497,6 +550,89 @@ def build_email_action_graph(
             event_status=result.status,
             idempotency_key=permit.idempotency_key,
         )
+
+    async def reconcile_unknown_node(
+        graph_state: EmailActionGraphState,
+    ) -> EmailActionGraphState:
+        """Recover UNKNOWN provider work without entering the POST execution path."""
+
+        state = _state(graph_state)
+        action_id = state.current_action_id
+        if action_id is None:
+            raise InvalidTransitionError("reconciliation has no current action")
+        permit = authorize_reconciliation(state, action_id)
+        candidate = reconciliation_executor
+        if candidate is None and write_executor is not None:
+            maybe_reconcile = getattr(write_executor, "reconcile", None)
+            if callable(maybe_reconcile):
+                candidate = cast(ReconciliationExecutor, write_executor)
+        if candidate is None:
+            result = ExecutionResult(
+                status="unknown",
+                error_code="reconciliation_not_configured",
+            )
+        else:
+            try:
+                result = await candidate.reconcile(permit)
+            except Exception:  # noqa: BLE001 - recovery remains fail-closed
+                result = ExecutionResult(
+                    status="unknown",
+                    error_code="reconciliation_failed",
+                )
+        action = workflow_action_for(state, action_id)
+        if result.status == "succeeded":
+            try:
+                await ledger.reconcile_success(permit, result)
+            except Exception:  # noqa: BLE001 - never claim an unpersisted recovery
+                result = ExecutionResult(
+                    status="unknown",
+                    error_code="reconciliation_persistence_failed",
+                )
+            else:
+                replacement = action.model_copy(
+                    update={
+                        "status": ActionStatus.COMPLETED,
+                        "error_code": result.error_code,
+                        "result": result,
+                    }
+                )
+                completed = list(dict.fromkeys([*state.completed_action_ids, action_id]))
+                update = _mark_action(
+                    state,
+                    replacement,
+                    workflow_status=Stage3WorkflowStatus.ACTION_REQUIRED,
+                    event_type="execution_reconciled",
+                    event_status="succeeded",
+                    idempotency_key=permit.idempotency_key,
+                )
+                update["completed_action_ids"] = completed
+                update["current_action_id"] = None
+                return update
+        replacement = action.model_copy(
+            update={
+                "status": ActionStatus.UNKNOWN,
+                "error_code": result.error_code or "clickup_reconciliation_unresolved",
+                "result": result,
+            }
+        )
+        return _mark_action(
+            state,
+            replacement,
+            workflow_status=Stage3WorkflowStatus.UNKNOWN,
+            event_type="execution_reconciliation_unresolved",
+            event_status="unknown",
+            idempotency_key=permit.idempotency_key,
+        )
+
+    def route_after_reconcile(
+        graph_state: EmailActionGraphState,
+    ) -> Literal["select_next_action", "reconcile_unknown", "finalize"]:
+        state = _state(graph_state)
+        if state.status is Stage3WorkflowStatus.ACTION_REQUIRED:
+            return "select_next_action"
+        if state.status is Stage3WorkflowStatus.UNKNOWN:
+            return "reconcile_unknown"
+        return "finalize"
 
     def route_after_execute(
         graph_state: EmailActionGraphState,
@@ -544,6 +680,11 @@ def build_email_action_graph(
         cast(Any, execute_write_node),
         input_schema=node_input,
     )
+    builder.add_node(
+        "reconcile_unknown",
+        cast(Any, reconcile_unknown_node),
+        input_schema=node_input,
+    )
     builder.add_node("finalize", cast(Any, finalize_node), input_schema=node_input)
 
     builder.add_edge(START, "validate_start")
@@ -552,5 +693,6 @@ def build_email_action_graph(
     builder.add_conditional_edges("approval_interrupt", _route_after_approval)
     builder.add_conditional_edges("claim_execution", route_after_claim)
     builder.add_conditional_edges("execute_write", route_after_execute)
+    builder.add_conditional_edges("reconcile_unknown", route_after_reconcile)
     builder.add_edge("finalize", END)
     return builder.compile(checkpointer=checkpointer, store=store)

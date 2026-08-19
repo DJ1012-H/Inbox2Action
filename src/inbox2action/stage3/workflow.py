@@ -75,14 +75,39 @@ def authorize_execution(
 ) -> ExecutionPermit:
     """Central execution boundary for approval, parameters, DAG, and idempotency."""
 
+    return _authorize_permit(
+        state,
+        action_id,
+        allowed_statuses={ActionStatus.APPROVED, ActionStatus.EXECUTION_CLAIMED},
+    )
+
+
+def authorize_reconciliation(
+    state: WorkflowState,
+    action_id: str,
+) -> ExecutionPermit:
+    """Authorize readonly recovery of one previously UNKNOWN approved action."""
+
+    return _authorize_permit(
+        state,
+        action_id,
+        allowed_statuses={ActionStatus.UNKNOWN},
+    )
+
+
+def _authorize_permit(
+    state: WorkflowState,
+    action_id: str,
+    *,
+    allowed_statuses: set[ActionStatus],
+) -> ExecutionPermit:
+    """Share permit validation while keeping write and recovery entry points distinct."""
+
     workflow_action = workflow_action_for(state, action_id)
     if workflow_action.status is ActionStatus.COMPLETED:
         raise DuplicateExecutionError("action is already completed")
-    if workflow_action.status not in {
-        ActionStatus.APPROVED,
-        ActionStatus.EXECUTION_CLAIMED,
-    }:
-        raise ApprovalError("action is not approved for execution")
+    if workflow_action.status not in allowed_statuses:
+        raise ApprovalError("action is not approved for this operation")
     approval = workflow_action.approval
     if approval is None or approval.status is not ApprovalStatus.APPROVED:
         raise ApprovalError("approved human decision is required before execution")
