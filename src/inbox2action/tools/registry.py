@@ -25,6 +25,7 @@ from inbox2action.tools.schemas import (
     CheckCalendarAvailabilityArgs,
     DoneArgs,
     NoArguments,
+    SaveCalendarProposalArgs,
     SaveReplyDraftArgs,
     SaveTaskProposalArgs,
 )
@@ -70,6 +71,13 @@ class ToolRegistry:
             "ask_user": cast(ToolHandler, self.runtime.ask_user),
             "done": cast(ToolHandler, self.runtime.done),
         }
+        calendar_proposal_handler = getattr(
+            self.runtime, "save_calendar_proposal", None
+        )
+        if callable(calendar_proposal_handler):
+            handlers["save_calendar_proposal"] = cast(
+                ToolHandler, calendar_proposal_handler
+            )
         if handler_overrides is not None:
             for name, handler in handler_overrides.items():
                 require_allowed_tool(name)
@@ -113,6 +121,13 @@ class ToolRegistry:
                 handler=handlers["done"],
             ),
         }
+        if "save_calendar_proposal" in handlers:
+            self._specs["save_calendar_proposal"] = ToolSpec(
+                name="save_calendar_proposal",
+                description="Create a local-only Calendar proposal; never writes Google Calendar.",
+                argument_model=SaveCalendarProposalArgs,
+                handler=handlers["save_calendar_proposal"],
+            )
         if enabled_tool_names is not None:
             enabled = set(enabled_tool_names)
             unknown = enabled.difference(self._specs)
@@ -121,6 +136,11 @@ class ToolRegistry:
             self._specs = {
                 name: spec for name, spec in self._specs.items() if name in enabled
             }
+        else:
+            # Preserve the pre-Stage-8 default registry surface. Calendar
+            # planning opts in explicitly so older agents cannot emit a new
+            # proposal tool accidentally.
+            self._specs.pop("save_calendar_proposal", None)
         self._execution_counts = {name: 0 for name in self._specs}
 
     def openai_tools(self) -> list[dict[str, object]]:

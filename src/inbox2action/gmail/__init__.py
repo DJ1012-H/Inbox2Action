@@ -18,8 +18,13 @@ from .oauth import (
     DEFAULT_CLIENT_SECRETS_PATH,
     DEFAULT_TOKEN_PATH,
     GMAIL_READONLY_SCOPE,
+    GOOGLE_CALENDAR_EVENTS_OWNED_SCOPE,
+    GOOGLE_CALENDAR_FREEBUSY_SCOPE,
+    GOOGLE_CALENDAR_SCOPES,
+    GOOGLE_REQUIRED_SCOPES,
     GmailOAuthConfig,
     GmailOAuthCredentialProvider,
+    GoogleOAuthCredentialProvider,
 )
 from .readonly import (
     PILOT_MAX_MESSAGES,
@@ -36,6 +41,10 @@ __all__ = [
     "DEFAULT_CLIENT_SECRETS_PATH",
     "DEFAULT_TOKEN_PATH",
     "GMAIL_READONLY_SCOPE",
+    "GOOGLE_CALENDAR_EVENTS_OWNED_SCOPE",
+    "GOOGLE_CALENDAR_FREEBUSY_SCOPE",
+    "GOOGLE_CALENDAR_SCOPES",
+    "GOOGLE_REQUIRED_SCOPES",
     "PILOT_MAX_MESSAGES",
     "PILOT_MAX_PAGES",
     "PILOT_PAGE_SIZE",
@@ -58,4 +67,5 @@ __all__ = [
     "GmailTokenInvalidError",
     "GmailTokenPersistenceError",
     "GmailTokenRefreshError",
+    "GoogleOAuthCredentialProvider",
 ]

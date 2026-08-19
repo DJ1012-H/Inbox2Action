@@ -27,6 +27,17 @@ from .errors import (
 logger = logging.getLogger(__name__)
 
 GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
+GOOGLE_CALENDAR_FREEBUSY_SCOPE = (
+    "https://www.googleapis.com/auth/calendar.freebusy"
+)
+GOOGLE_CALENDAR_EVENTS_OWNED_SCOPE = (
+    "https://www.googleapis.com/auth/calendar.events.owned"
+)
+GOOGLE_CALENDAR_SCOPES = (
+    GOOGLE_CALENDAR_FREEBUSY_SCOPE,
+    GOOGLE_CALENDAR_EVENTS_OWNED_SCOPE,
+)
+GOOGLE_REQUIRED_SCOPES = (GMAIL_READONLY_SCOPE, *GOOGLE_CALENDAR_SCOPES)
 
 
 def _local_appdata() -> Path:
@@ -41,6 +52,7 @@ DEFAULT_CLIENT_SECRETS_PATH = DEFAULT_SECRET_DIRECTORY / "gmail-oauth-client.jso
 DEFAULT_TOKEN_PATH = DEFAULT_SECRET_DIRECTORY / "gmail-token.json"
 DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _EXPECTED_SCOPES = frozenset({GMAIL_READONLY_SCOPE})
+_ALLOWED_SCOPES = frozenset(GOOGLE_REQUIRED_SCOPES)
 _WINDOWS_SYSTEM_SID = "S-1-5-18"
 _WINDOWS_ADMINISTRATORS_SID = "S-1-5-32-544"
 _WINDOWS_SID_PATTERN = re.compile(r"S-\d+(?:-\d+)+", re.IGNORECASE)
@@ -93,7 +105,7 @@ def _normalise_scopes(value: Any) -> frozenset[str] | None:
 
 
 class GmailOAuthCredentialProvider:
-    """Load, refresh, or obtain Gmail credentials with the fixed readonly scope."""
+    """Load, refresh, or obtain Google credentials with an allowlisted scope set."""
 
     def __init__(
         self,
@@ -102,22 +114,34 @@ class GmailOAuthCredentialProvider:
         flow_factory: Callable[[dict[str, Any], list[str]], Any] | None = None,
         credentials_loader: Callable[[dict[str, Any], list[str]], Any] | None = None,
         request_factory: Callable[[], Any] | None = None,
+        scopes: tuple[str, ...] = (GMAIL_READONLY_SCOPE,),
     ) -> None:
+        requested_scopes = tuple(dict.fromkeys(scopes))
+        if not requested_scopes or not set(requested_scopes).issubset(_ALLOWED_SCOPES):
+            raise GmailOAuthClientConfigError()
         self.config = config or GmailOAuthConfig()
         self._flow_factory = flow_factory or _default_flow_factory
         self._credentials_loader = credentials_loader or _default_credentials_loader
         self._request_factory = request_factory or _default_request_factory
+        self._scopes = requested_scopes
+        self._required_scopes = frozenset(requested_scopes)
 
     def __call__(self) -> Any:
         return self.get_credentials()
 
-    def get_credentials(self) -> Any:
+    def get_credentials(self, *, force_reauthorize: bool = False) -> Any:
+        if force_reauthorize:
+            credentials = self._authorize()
+            _validate_credential_scopes(credentials, self._required_scopes)
+            self._persist(credentials)
+            logger.info("google_oauth_reauthorization_completed")
+            return credentials
         if self.config.token_path.exists():
             self._harden_existing_token()
             credentials = self._load_persisted_token()
             if getattr(credentials, "valid", False):
-                _validate_credential_scopes(credentials)
-                logger.info("gmail_oauth_token_loaded")
+                _validate_credential_scopes(credentials, self._required_scopes)
+                logger.info("google_oauth_token_loaded")
                 return credentials
             if not getattr(credentials, "expired", False) or not getattr(
                 credentials, "refresh_token", None
@@ -126,10 +150,15 @@ class GmailOAuthCredentialProvider:
             return self._refresh(credentials)
 
         credentials = self._authorize()
-        _validate_credential_scopes(credentials)
+        _validate_credential_scopes(credentials, self._required_scopes)
         self._persist(credentials)
-        logger.info("gmail_oauth_authorization_completed")
+        logger.info("google_oauth_authorization_completed")
         return credentials
+
+    def reauthorize(self) -> Any:
+        """Run the local browser flow and atomically replace the external token."""
+
+        return self.get_credentials(force_reauthorize=True)
 
     def _harden_existing_token(self) -> None:
         try:
@@ -146,10 +175,12 @@ class GmailOAuthCredentialProvider:
             raise GmailTokenInvalidError()
         try:
             token_scopes = _normalise_scopes(token_info.get("scopes"))
-            if token_scopes is not None and token_scopes != _EXPECTED_SCOPES:
+            if token_scopes is not None and not _scopes_are_allowed(
+                token_scopes, self._required_scopes
+            ):
                 raise GmailTokenInvalidError()
-            credentials = self._credentials_loader(token_info, [GMAIL_READONLY_SCOPE])
-            _validate_credential_scopes(credentials)
+            credentials = self._credentials_loader(token_info, list(self._scopes))
+            _validate_credential_scopes(credentials, self._required_scopes)
             return credentials
         except GmailTokenInvalidError:
             raise
@@ -159,7 +190,7 @@ class GmailOAuthCredentialProvider:
     def _refresh(self, credentials: Any) -> Any:
         try:
             credentials.refresh(self._request_factory())
-            _validate_credential_scopes(credentials)
+            _validate_credential_scopes(credentials, self._required_scopes)
             self._persist(credentials)
         except GmailTokenPersistenceError:
             raise
@@ -173,7 +204,7 @@ class GmailOAuthCredentialProvider:
     def _authorize(self) -> Any:
         client_config = self._load_client_config()
         try:
-            flow = self._flow_factory(client_config, [GMAIL_READONLY_SCOPE])
+            flow = self._flow_factory(client_config, list(self._scopes))
         except GmailOAuthClientConfigError:
             raise
         except Exception:  # noqa: BLE001 - config construction errors stay classified
@@ -298,7 +329,16 @@ def _is_desktop_client_config(config: Any) -> bool:
     )
 
 
-def _validate_credential_scopes(credentials: Any) -> None:
+def _scopes_are_allowed(
+    scopes: frozenset[str], required_scopes: frozenset[str]
+) -> bool:
+    return required_scopes.issubset(scopes) and scopes.issubset(_ALLOWED_SCOPES)
+
+
+def _validate_credential_scopes(
+    credentials: Any,
+    required_scopes: frozenset[str] = _EXPECTED_SCOPES,
+) -> None:
     saw_scope_metadata = False
     for attribute in ("scopes", "granted_scopes"):
         try:
@@ -309,7 +349,7 @@ def _validate_credential_scopes(credentials: Any) -> None:
         if normalised is None:
             continue
         saw_scope_metadata = True
-        if normalised != _EXPECTED_SCOPES:
+        if not _scopes_are_allowed(normalised, required_scopes):
             raise GmailTokenInvalidError()
     if not saw_scope_metadata:
         raise GmailTokenInvalidError()
@@ -327,7 +367,7 @@ def _is_authorization_denied(error: Exception) -> bool:
 
 
 def _default_flow_factory(client_config: dict[str, Any], scopes: list[str]) -> Any:
-    from google_auth_oauthlib.flow import (  # type: ignore[import-untyped]
+    from google_auth_oauthlib.flow import (  # type: ignore[import-not-found]
         InstalledAppFlow,
     )
 
@@ -344,3 +384,23 @@ def _default_request_factory() -> Any:
     from google.auth.transport.requests import Request  # type: ignore[import-not-found]
 
     return Request()
+
+
+class GoogleOAuthCredentialProvider(GmailOAuthCredentialProvider):
+    """Shared Stage 5 token architecture with the narrow Stage 8 scopes."""
+
+    def __init__(
+        self,
+        config: GmailOAuthConfig | None = None,
+        *,
+        flow_factory: Callable[[dict[str, Any], list[str]], Any] | None = None,
+        credentials_loader: Callable[[dict[str, Any], list[str]], Any] | None = None,
+        request_factory: Callable[[], Any] | None = None,
+    ) -> None:
+        super().__init__(
+            config,
+            flow_factory=flow_factory,
+            credentials_loader=credentials_loader,
+            request_factory=request_factory,
+            scopes=GOOGLE_REQUIRED_SCOPES,
+        )

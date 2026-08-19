@@ -12,6 +12,7 @@ from inbox2action.tools.schemas import (
     CheckCalendarAvailabilityArgs,
     DoneArgs,
     NoArguments,
+    SaveCalendarProposalArgs,
     SaveReplyDraftArgs,
     SaveTaskProposalArgs,
 )
@@ -52,8 +53,19 @@ class TaskProposal:
     priority: Literal["low", "medium", "high"]
 
 
+@dataclass(frozen=True)
+class CalendarProposal:
+    proposal_id: str
+    summary: str
+    description: str | None
+    start_time: datetime
+    end_time: datetime
+    timezone: str
+    location: str | None
+
+
 def _default_busy_intervals() -> list[tuple[datetime, datetime]]:
-    timezone = ZoneInfo("Asia/Taipei")
+    timezone = ZoneInfo("Asia/Shanghai")
     return [
         (
             datetime(2026, 7, 27, 9, 0, tzinfo=timezone),
@@ -73,7 +85,7 @@ class MockToolRuntime:
             26,
             9,
             0,
-            tzinfo=ZoneInfo("Asia/Taipei"),
+            tzinfo=ZoneInfo("Asia/Shanghai"),
         )
     )
     busy_intervals: list[tuple[datetime, datetime]] = field(
@@ -81,13 +93,14 @@ class MockToolRuntime:
     )
     proposals: list[DraftProposal] = field(default_factory=list)
     task_proposals: list[TaskProposal] = field(default_factory=list)
+    calendar_proposals: list[CalendarProposal] = field(default_factory=list)
 
     def get_current_time(self, _: NoArguments) -> ToolObservation:
         return ToolObservation(
             tool_name="get_current_time",
             observation_type="current_time",
             status="ok",
-            data={"now": self.now.isoformat(), "timezone": "Asia/Taipei"},
+            data={"now": self.now.isoformat(), "timezone": "Asia/Shanghai"},
         )
 
     def check_calendar_availability(
@@ -137,6 +150,39 @@ class MockToolRuntime:
                 "external_side_effects": 0,
                 "subject_length": len(arguments.subject),
                 "body_length": len(arguments.body),
+            },
+        )
+
+    def save_calendar_proposal(
+        self, arguments: SaveCalendarProposalArgs
+    ) -> ToolObservation:
+        """Store a local proposal; this method never calls a provider."""
+
+        proposal_id = f"calendar-proposal-{len(self.calendar_proposals) + 1}"
+        self.calendar_proposals.append(
+            CalendarProposal(
+                proposal_id=proposal_id,
+                summary=arguments.summary,
+                description=arguments.description,
+                start_time=arguments.start_time,
+                end_time=arguments.end_time,
+                timezone=arguments.timezone,
+                location=arguments.location,
+            )
+        )
+        return ToolObservation(
+            tool_name="save_calendar_proposal",
+            observation_type="calendar_proposal",
+            status="proposal_created",
+            data={
+                "proposal_id": proposal_id,
+                "proposal_type": "calendar",
+                "saved": True,
+                "external_side_effect": False,
+                "summary_length": len(arguments.summary),
+                "description_length": len(arguments.description or ""),
+                "timezone": arguments.timezone,
+                "location_present": arguments.location is not None,
             },
         )
 

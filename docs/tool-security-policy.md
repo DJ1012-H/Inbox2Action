@@ -31,6 +31,7 @@ arbitrary files.
 The initial write proposals are:
 
 - save_reply_draft;
+- save_calendar_proposal (local-only until the existing HITL/execution boundary);
 - create_clickup_task;
 - create_calendar_event.
 

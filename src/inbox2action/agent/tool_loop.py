@@ -7,7 +7,11 @@ from time import perf_counter
 from typing import Protocol
 
 from inbox2action.llm.models import ChatCompletionResult
-from inbox2action.tools.mock_tools import DraftProposal, ToolObservation
+from inbox2action.tools.mock_tools import (
+    CalendarProposal,
+    DraftProposal,
+    ToolObservation,
+)
 from inbox2action.tools.policy import ToolError
 from inbox2action.tools.registry import ToolRegistry, ValidatedToolCall
 
@@ -84,6 +88,7 @@ class ToolLoopResult:
     trace: tuple[ToolTraceEntry, ...]
     completed: bool
     proposals: tuple[DraftProposal, ...]
+    calendar_proposals: tuple[CalendarProposal, ...] = ()
 
 
 class ToolLoop:
@@ -238,6 +243,9 @@ class ToolLoop:
                     trace=tuple(trace),
                     completed=True,
                     proposals=tuple(self._registry.runtime.proposals),
+                    calendar_proposals=tuple(
+                        getattr(self._registry.runtime, "calendar_proposals", ())
+                    ),
                 )
             if step == self._max_tool_steps:
                 raise ToolLoopLimitError(

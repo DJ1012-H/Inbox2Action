@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import (
@@ -108,6 +109,28 @@ class Settings(BaseSettings):
         default=None,
         validation_alias="GMAIL_TOKEN_PATH",
     )
+    business_timezone: str = Field(
+        "Asia/Shanghai",
+        validation_alias="INBOX2ACTION_BUSINESS_TIMEZONE",
+    )
+    google_calendar_enabled: bool = Field(
+        False,
+        validation_alias="GOOGLE_CALENDAR_ENABLED",
+    )
+    google_calendar_id: str | None = Field(
+        default=None,
+        validation_alias="GOOGLE_CALENDAR_ID",
+    )
+    google_calendar_timeout_seconds: float = Field(
+        30.0,
+        gt=0,
+        le=120,
+        validation_alias="GOOGLE_CALENDAR_TIMEOUT_SECONDS",
+    )
+    run_google_calendar_integration_tests: bool = Field(
+        False,
+        validation_alias="RUN_GOOGLE_CALENDAR_INTEGRATION_TESTS",
+    )
     clickup_enabled: bool = Field(False, validation_alias="CLICKUP_ENABLED")
     clickup_api_token: SecretStr | None = Field(
         default=None,
@@ -152,6 +175,7 @@ class Settings(BaseSettings):
         "database_url",
         "gmail_client_secrets_path",
         "gmail_token_path",
+        "google_calendar_id",
         "clickup_api_token",
         "clickup_list_id",
         mode="before",
@@ -163,6 +187,28 @@ class Settings(BaseSettings):
         if isinstance(value, str) and not value.strip():
             return None
         return value
+
+    @field_validator("business_timezone")
+    @classmethod
+    def validate_business_timezone(cls, value: str) -> str:
+        normalized = value.strip()
+        try:
+            ZoneInfo(normalized)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError("INBOX2ACTION_BUSINESS_TIMEZONE must be an IANA timezone") from exc
+        return normalized
+
+    @field_validator("google_calendar_id")
+    @classmethod
+    def validate_google_calendar_id(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized or len(normalized) > 256 or any(
+            ord(character) < 32 or ord(character) == 127 for character in normalized
+        ):
+            raise ValueError("GOOGLE_CALENDAR_ID must be a bounded non-control string")
+        return normalized
 
     @field_validator("clickup_list_id")
     @classmethod

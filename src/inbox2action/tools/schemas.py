@@ -17,7 +17,7 @@ class CheckCalendarAvailabilityArgs(BaseModel):
 
     start: datetime
     end: datetime
-    timezone: str = Field(default="Asia/Taipei", min_length=1, max_length=64)
+    timezone: str = Field(default="Asia/Shanghai", min_length=1, max_length=64)
 
     @field_validator("start", "end")
     @classmethod
@@ -41,6 +41,9 @@ class CheckCalendarAvailabilityArgs(BaseModel):
             raise ValueError("end must be later than start")
         if self.end - self.start > timedelta(minutes=480):
             raise ValueError("meeting duration exceeds the safe limit")
+        timezone = ZoneInfo(self.timezone)
+        self.start = self.start.astimezone(timezone)
+        self.end = self.end.astimezone(timezone)
         return self
 
 
@@ -111,11 +114,56 @@ class CreateCalendarEventArgs(BaseModel):
         return self
 
 
+class SaveCalendarProposalArgs(BaseModel):
+    """Local-only, provider-neutral Calendar proposal parameters."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    summary: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=4000)
+    start_time: datetime
+    end_time: datetime
+    timezone: str = Field(
+        default="Asia/Shanghai",
+        min_length=1,
+        max_length=64,
+    )
+    location: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def require_explicit_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("datetime must include an explicit timezone")
+        return value
+
+    @field_validator("timezone")
+    @classmethod
+    def require_known_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError("timezone must be a known IANA timezone") from exc
+        return value
+
+    @model_validator(mode="after")
+    def validate_interval(self) -> SaveCalendarProposalArgs:
+        timezone = ZoneInfo(self.timezone)
+        self.start_time = self.start_time.astimezone(timezone)
+        self.end_time = self.end_time.astimezone(timezone)
+        if self.end_time <= self.start_time:
+            raise ValueError("end_time must be later than start_time")
+        if self.end_time - self.start_time > timedelta(minutes=480):
+            raise ValueError("event duration exceeds the safe limit")
+        return self
+
+
 WRITE_ARGUMENT_MODELS: dict[str, type[BaseModel]] = {
     "save_reply_draft": SaveReplyDraftArgs,
     "save_task_proposal": SaveTaskProposalArgs,
     "create_clickup_task": CreateClickUpTaskArgs,
     "create_calendar_event": CreateCalendarEventArgs,
+    "save_calendar_proposal": SaveCalendarProposalArgs,
 }
 
 

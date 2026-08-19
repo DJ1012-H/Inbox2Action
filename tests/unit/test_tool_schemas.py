@@ -12,13 +12,13 @@ from inbox2action.tools.schemas import (
 )
 
 
-def test_calendar_args_require_explicit_timezone_and_use_taipei_default() -> None:
+def test_calendar_args_require_explicit_timezone_and_use_shanghai_default() -> None:
     arguments = CheckCalendarAvailabilityArgs(
         start="2026-07-27T09:00:00+08:00",
         end="2026-07-27T10:00:00+08:00",
     )
 
-    assert arguments.timezone == "Asia/Taipei"
+    assert arguments.timezone == "Asia/Shanghai"
 
 
 @pytest.mark.parametrize(

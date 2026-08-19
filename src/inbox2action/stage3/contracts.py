@@ -19,6 +19,7 @@ from inbox2action.tools.schemas import validate_write_tool_parameters
 WriteToolName = Literal[
     "save_reply_draft",
     "save_task_proposal",
+    "save_calendar_proposal",
     "create_clickup_task",
     "create_calendar_event",
 ]
@@ -26,6 +27,7 @@ WRITE_TOOL_NAMES = frozenset(
     {
         "save_reply_draft",
         "save_task_proposal",
+        "save_calendar_proposal",
         "create_clickup_task",
         "create_calendar_event",
     }

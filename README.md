@@ -27,6 +27,12 @@ or invalid marker configuration remains fail-closed. Live Stage 7 acceptance
 is pending the configured test List having that Custom Field; no live Task is
 claimed by the offline or PostgreSQL tests.
 
+Stage 8 adds the Google Calendar FreeBusy read adapter, conflict-aware
+Calendar Agent loop, local-only `save_calendar_proposal`, and a deterministic
+HITL/ledger-guarded Events.insert adapter. Its live OAuth/FreeBusy/event gate
+remains separate until the explicit reauthorization and smoke commands in
+`docs/stage-8-google-calendar.md` are run.
+
 Stage 2 passed its frozen real-model acceptance on 2026-08-09. The final
 `deepseek-v4-flash` formal60 batch achieved:
 
