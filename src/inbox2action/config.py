@@ -108,6 +108,25 @@ class Settings(BaseSettings):
         default=None,
         validation_alias="GMAIL_TOKEN_PATH",
     )
+    clickup_enabled: bool = Field(False, validation_alias="CLICKUP_ENABLED")
+    clickup_api_token: SecretStr | None = Field(
+        default=None,
+        validation_alias="CLICKUP_API_TOKEN",
+    )
+    clickup_list_id: str | None = Field(
+        default=None,
+        validation_alias="CLICKUP_LIST_ID",
+    )
+    clickup_timeout_seconds: float = Field(
+        10.0,
+        gt=0,
+        le=30,
+        validation_alias="CLICKUP_TIMEOUT_SECONDS",
+    )
+    run_clickup_integration_tests: bool = Field(
+        False,
+        validation_alias="RUN_CLICKUP_INTEGRATION_TESTS",
+    )
 
     @classmethod
     def settings_customise_sources(
@@ -133,13 +152,27 @@ class Settings(BaseSettings):
         "database_url",
         "gmail_client_secrets_path",
         "gmail_token_path",
+        "clickup_api_token",
+        "clickup_list_id",
         mode="before",
     )
     @classmethod
     def blank_values_are_unset(cls, value: object) -> object:
+        if isinstance(value, SecretStr):
+            return value if value.get_secret_value().strip() else None
         if isinstance(value, str) and not value.strip():
             return None
         return value
+
+    @field_validator("clickup_list_id")
+    @classmethod
+    def validate_clickup_list_id(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized.isascii() or not normalized.isdigit():
+            raise ValueError("CLICKUP_LIST_ID must contain only ASCII digits")
+        return normalized
 
     @field_validator("llm_base_url")
     @classmethod
@@ -181,3 +214,15 @@ class Settings(BaseSettings):
         if self.database_url is None:
             return None
         return self.database_url.get_secret_value() or None
+
+    @property
+    def clickup_api_token_value(self) -> str | None:
+        """Return the ClickUp token only at the provider construction boundary."""
+
+        if self.clickup_api_token is None:
+            return None
+        return self.clickup_api_token.get_secret_value() or None
+
+    @property
+    def clickup_api_token_configured(self) -> bool:
+        return self.clickup_api_token_value is not None

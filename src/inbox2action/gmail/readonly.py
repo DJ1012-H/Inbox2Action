@@ -386,6 +386,8 @@ def _map_api_exception(error: Exception) -> GmailError:
 
 
 def _default_service_factory(credentials: Any) -> Any:
-    from googleapiclient.discovery import build  # type: ignore[import-not-found]
+    from googleapiclient.discovery import (  # type: ignore[import-not-found,import-untyped]
+        build,
+    )
 
     return build("gmail", "v1", credentials=credentials, cache_discovery=False)
