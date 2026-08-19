@@ -15,11 +15,13 @@ from inbox2action.calendar import (
     GoogleCalendarClient,
     GoogleCalendarFreeBusyAdapter,
     GoogleCalendarWriteExecutor,
+    InsertOutcomeClass,
 )
 from inbox2action.calendar.errors import (
     GoogleCalendarApiError,
     GoogleCalendarConflictError,
     GoogleCalendarInvalidResponseError,
+    GoogleCalendarLocalClientError,
     GoogleCalendarResponseDiagnostics,
     GoogleCalendarTransportError,
 )
@@ -77,9 +79,13 @@ class FakeGoogleRequest:
     ) -> None:
         self.response = response
         self.error = error
-        self.http_response = http_response or getattr(
-            error, "resp", None
-        ) or FakeHttpResponse(200)
+        self.http_response = (
+            http_response
+            if http_response is not None
+            else getattr(error, "resp", None)
+        )
+        if self.http_response is None and error is None:
+            self.http_response = FakeHttpResponse(200)
         self.response_callbacks: list[Any] = []
 
     def execute(self) -> object:
@@ -97,14 +103,35 @@ class FakeGoogleCalendarService:
         *,
         insert_error: Exception | None = None,
         get_response: object = None,
+        get_errors: list[Exception] | None = None,
+        get_responses: list[object] | None = None,
+        get_script: list[object | Exception] | None = None,
+        insert_construction_error: Exception | None = None,
     ) -> None:
+        self.insert_count = 0
+        self.get_count = 0
+        self.insert_construction_error = insert_construction_error
         self.insert_request = FakeGoogleRequest(
             response,
             error=insert_error,
         )
-        self.get_request = FakeGoogleRequest(
-            get_response if get_response is not None else response,
-        )
+        if get_script is not None:
+            self.get_requests = [
+                FakeGoogleRequest(error=item)
+                if isinstance(item, Exception)
+                else FakeGoogleRequest(item)
+                for item in get_script
+            ]
+        elif get_responses is not None:
+            self.get_requests = [FakeGoogleRequest(item) for item in get_responses]
+        elif get_errors is not None:
+            self.get_requests = [FakeGoogleRequest(error=item) for item in get_errors]
+        else:
+            self.get_requests = [
+                FakeGoogleRequest(
+                    get_response if get_response is not None else response,
+                )
+            ]
         self.insert_kwargs: dict[str, object] | None = None
         self.get_kwargs: dict[str, object] | None = None
 
@@ -112,12 +139,18 @@ class FakeGoogleCalendarService:
         return self
 
     def insert(self, **kwargs: object) -> FakeGoogleRequest:
+        self.insert_count += 1
         self.insert_kwargs = kwargs
+        if self.insert_construction_error is not None:
+            raise self.insert_construction_error
         return self.insert_request
 
     def get(self, **kwargs: object) -> FakeGoogleRequest:
+        self.get_count += 1
         self.get_kwargs = kwargs
-        return self.get_request
+        if not self.get_requests:
+            raise AssertionError("unexpected extra GET")
+        return self.get_requests.pop(0)
 
 
 def _freebusy_response(*busy: tuple[str, str]) -> dict[str, object]:
@@ -483,6 +516,25 @@ def _realistic_event_response(permit: Any, *, event_id: str | None = None) -> di
     }
 
 
+async def _no_sleep(_: float) -> None:
+    return None
+
+
+def _http_error(status: int, message: str = "provider failure") -> HttpError:
+    return HttpError(
+        FakeHttpResponse(status),
+        json.dumps(
+            {
+                "error": {
+                    "code": status,
+                    "message": message,
+                    "errors": [{"reason": "test_reason"}],
+                }
+            }
+        ).encode(),
+    )
+
+
 @pytest.mark.asyncio
 async def test_production_insert_accepts_realistic_event_and_sends_safe_body() -> None:
     permit = _authorized_calendar_permit()
@@ -525,6 +577,10 @@ async def test_production_insert_accepts_realistic_event_and_sends_safe_body() -
     }
     assert "attendees" not in body
     assert "conferenceData" not in body
+    assert result.diagnostics is not None
+    assert result.diagnostics["insert_attempt"]["outcome_class"] == (
+        InsertOutcomeClass.SUCCESS_RESPONSE.value
+    )
 
 
 def test_production_insert_missing_id_exposes_sanitized_response_diagnostics() -> None:
@@ -572,6 +628,12 @@ def test_production_insert_non_json_2xx_exposes_decoding_invariant() -> None:
     assert diagnostics.top_level_keys == ()
     assert diagnostics.has_id is False
     assert diagnostics.has_error is False
+    assert raised.value.insert_diagnostic is not None
+    assert raised.value.insert_diagnostic.outcome_class == (
+        InsertOutcomeClass.INVALID_SUCCESS_RESPONSE
+    )
+    assert raised.value.insert_diagnostic.http_status == 200
+    assert raised.value.insert_diagnostic.response_received is True
 
 
 @pytest.mark.asyncio
@@ -618,6 +680,215 @@ def test_google_error_response_is_provider_error_with_safe_metadata() -> None:
     assert diagnostics.decoded_type == "dict"
     assert diagnostics.top_level_keys == ("error",)
     assert diagnostics.has_error is True
+    assert raised.value.insert_diagnostic is not None
+    assert raised.value.insert_diagnostic.outcome_class == (
+        InsertOutcomeClass.DEFINITIVE_HTTP_FAILURE
+    )
+    assert raised.value.insert_diagnostic.provider_reason == (
+        "invalid request"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", [400, 401, 403])
+async def test_http_insert_failures_are_retained_and_never_retried(status: int) -> None:
+    permit = _authorized_calendar_permit()
+    service = FakeGoogleCalendarService(insert_error=_http_error(status))
+    executor = GoogleCalendarWriteExecutor(
+        GoogleCalendarClient(service),
+        calendar_id="trusted-calendar@example.com",
+        enabled=True,
+        sleeper=_no_sleep,
+    )
+
+    result = await executor.execute(permit)
+
+    assert result.status == "failed"
+    assert result.error_code == f"google_calendar_http_{status}"
+    assert service.insert_count == 1
+    assert service.get_count == 0
+    assert result.diagnostics is not None
+    insert = result.diagnostics["insert_attempt"]
+    assert insert["outcome_class"] == InsertOutcomeClass.DEFINITIVE_HTTP_FAILURE.value
+    assert insert["http_status"] == status
+    assert insert["exception_type"] == "HttpError"
+    assert insert["has_error"] is True
+    assert insert["provider_reason"] == "test_reason: provider failure"
+
+
+@pytest.mark.asyncio
+async def test_409_diagnostic_and_bounded_reconciliation_are_separate() -> None:
+    permit = _authorized_calendar_permit()
+    service = FakeGoogleCalendarService(
+        insert_error=_http_error(409, "already exists"),
+        get_script=[
+            _http_error(404, "not found yet"),
+            _http_error(404, "still not found"),
+            _realistic_event_response(permit),
+        ],
+    )
+    executor = GoogleCalendarWriteExecutor(
+        GoogleCalendarClient(service),
+        calendar_id="trusted-calendar@example.com",
+        enabled=True,
+        sleeper=_no_sleep,
+    )
+
+    result = await executor.execute(permit)
+
+    assert result.status == "succeeded"
+    assert service.insert_count == 1
+    assert service.get_count == 3
+    assert result.diagnostics is not None
+    assert result.diagnostics["insert_attempt"]["outcome_class"] == (
+        InsertOutcomeClass.DUPLICATE_409.value
+    )
+    reconciliation = result.diagnostics["reconciliation"]
+    assert reconciliation["get_attempt_count"] == 3
+    assert [item["http_status"] for item in reconciliation["attempts"]] == [
+        404,
+        404,
+        200,
+    ]
+    assert reconciliation["final_outcome"] == "found_identity_match"
+
+
+@pytest.mark.asyncio
+async def test_transport_timeout_reconciles_bounded_without_second_insert() -> None:
+    permit = _authorized_calendar_permit()
+    service = FakeGoogleCalendarService(
+        insert_error=TimeoutError("socket timeout"),
+        get_script=[
+            _http_error(404),
+            _http_error(404),
+            _http_error(404),
+        ],
+    )
+    executor = GoogleCalendarWriteExecutor(
+        GoogleCalendarClient(service),
+        calendar_id="trusted-calendar@example.com",
+        enabled=True,
+        sleeper=_no_sleep,
+    )
+
+    result = await executor.execute(permit)
+
+    assert result.status == "unknown"
+    assert result.error_code == "google_calendar_reconciliation_unresolved"
+    assert service.insert_count == 1
+    assert service.get_count == 3
+    assert result.diagnostics is not None
+    assert result.diagnostics["insert_attempt"]["outcome_class"] == (
+        InsertOutcomeClass.AMBIGUOUS_TRANSPORT_FAILURE.value
+    )
+    assert result.diagnostics["insert_attempt"]["exception_type"] == "TimeoutError"
+    reconciliation = result.diagnostics["reconciliation"]
+    assert reconciliation["get_attempt_count"] == 3
+    assert all(item["http_status"] == 404 for item in reconciliation["attempts"])
+    assert reconciliation["final_outcome"] == "not_found"
+
+
+@pytest.mark.asyncio
+async def test_invalid_success_response_preserves_insert_diagnostic_through_reconcile() -> None:
+    permit = _authorized_calendar_permit()
+    service = FakeGoogleCalendarService(
+        {"kind": "calendar#event"},
+        get_script=[_http_error(404), _http_error(404), _http_error(404)],
+    )
+    executor = GoogleCalendarWriteExecutor(
+        GoogleCalendarClient(service),
+        calendar_id="trusted-calendar@example.com",
+        enabled=True,
+        sleeper=_no_sleep,
+    )
+
+    result = await executor.execute(permit)
+
+    assert result.status == "unknown"
+    assert service.insert_count == 1
+    assert service.get_count == 3
+    assert result.diagnostics is not None
+    assert result.diagnostics["insert_attempt"]["outcome_class"] == (
+        InsertOutcomeClass.INVALID_SUCCESS_RESPONSE.value
+    )
+    assert result.diagnostics["insert_attempt"]["http_status"] == 200
+    assert result.diagnostics["reconciliation"]["final_outcome"] == "not_found"
+
+
+def test_local_request_construction_failure_is_classified_without_response() -> None:
+    service = FakeGoogleCalendarService(
+        insert_construction_error=ValueError("client_secret=do-not-record")
+    )
+    client = GoogleCalendarClient(service)
+
+    with pytest.raises(GoogleCalendarLocalClientError) as raised:
+        client.insert_event(
+            calendar_id="trusted-calendar@example.com",
+            event_id="deterministic-event-id",
+            body={"id": "deterministic-event-id"},
+        )
+
+    diagnostic = raised.value.insert_diagnostic
+    assert diagnostic is not None
+    assert diagnostic.outcome_class == InsertOutcomeClass.LOCAL_CLIENT_FAILURE
+    assert diagnostic.exception_type == "ValueError"
+    assert diagnostic.response_received is False
+    assert diagnostic.request_may_have_reached_server is False
+    assert "do-not-record" not in (diagnostic.provider_reason or "")
+
+
+@pytest.mark.asyncio
+async def test_timeout_404_404_found_reconciles_with_identity_match() -> None:
+    permit = _authorized_calendar_permit()
+    service = FakeGoogleCalendarService(
+        insert_error=TimeoutError("socket timeout"),
+        get_script=[
+            _http_error(404),
+            _http_error(404),
+            _realistic_event_response(permit),
+        ],
+    )
+    executor = GoogleCalendarWriteExecutor(
+        GoogleCalendarClient(service),
+        calendar_id="trusted-calendar@example.com",
+        enabled=True,
+        sleeper=_no_sleep,
+    )
+
+    result = await executor.execute(permit)
+
+    assert result.status == "succeeded"
+    assert service.insert_count == 1
+    assert result.diagnostics is not None
+    assert result.diagnostics["reconciliation"]["final_outcome"] == (
+        "found_identity_match"
+    )
+
+
+@pytest.mark.asyncio
+async def test_reconciliation_identity_mismatch_fails_closed_without_retry() -> None:
+    permit = _authorized_calendar_permit()
+    service = FakeGoogleCalendarService(
+        insert_error=_http_error(409),
+        get_responses=[_realistic_event_response(permit, event_id="other-id")],
+    )
+    executor = GoogleCalendarWriteExecutor(
+        GoogleCalendarClient(service),
+        calendar_id="trusted-calendar@example.com",
+        enabled=True,
+        sleeper=_no_sleep,
+    )
+
+    result = await executor.execute(permit)
+
+    assert result.status == "failed"
+    assert result.error_code == "google_calendar_identity_mismatch"
+    assert service.insert_count == 1
+    assert service.get_count == 1
+    assert result.diagnostics is not None
+    assert result.diagnostics["reconciliation"]["final_outcome"] == (
+        "found_identity_mismatch"
+    )
 
 
 @pytest.mark.asyncio

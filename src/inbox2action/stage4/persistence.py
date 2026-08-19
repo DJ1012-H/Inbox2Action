@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
@@ -11,6 +12,7 @@ from sqlalchemy import (
     MetaData,
     String,
     Table,
+    Text,
     select,
     update,
 )
@@ -37,6 +39,7 @@ execution_ledger_table = Table(
     Column("payload_hash", String(64), nullable=False),
     Column("status", String(16), nullable=False),
     Column("error_code", String(64), nullable=True),
+    Column("diagnostics_json", Text(), nullable=True),
     Column("resource_provider", String(64), nullable=True),
     Column("resource_type", String(64), nullable=True),
     Column("resource_id", String(256), nullable=True),
@@ -65,6 +68,7 @@ class PostgresExecutionLedger:
                     payload_hash=permit.approved_payload_hash,
                     status="claimed",
                     error_code=None,
+                    diagnostics_json=None,
                     attempt_count=1,
                     claimed_at=now,
                     updated_at=now,
@@ -105,6 +109,7 @@ class PostgresExecutionLedger:
                     .values(
                         status="claimed",
                         error_code=None,
+                        diagnostics_json=None,
                         resource_provider=None,
                         resource_type=None,
                         resource_id=None,
@@ -154,6 +159,7 @@ class PostgresExecutionLedger:
                 .values(
                     status=result.status,
                     error_code=result.error_code,
+                    diagnostics_json=_diagnostics_json(result),
                     resource_provider=(
                         result.resource.provider if result.resource is not None else None
                     ),
@@ -219,6 +225,7 @@ class PostgresExecutionLedger:
                     resource_type=result.resource.resource_type,
                     resource_id=result.resource.resource_id,
                     resource_url=result.resource.url,
+                    diagnostics_json=_diagnostics_json(result),
                     updated_at=now,
                 )
             )
@@ -328,5 +335,30 @@ def _execution_result_from_row(row: Mapping[Any, Any]) -> ExecutionResult:
             "status": row["status"],
             "error_code": row["error_code"],
             "resource": resource,
+            "diagnostics": _diagnostics_from_row(row),
         }
     )
+
+
+def _diagnostics_json(result: ExecutionResult) -> str | None:
+    if result.diagnostics is None:
+        return None
+    return json.dumps(
+        result.diagnostics,
+        ensure_ascii=False,
+        allow_nan=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
+def _diagnostics_from_row(row: Mapping[Any, Any]) -> dict[str, object] | None:
+    raw = row.get("diagnostics_json")
+    if raw is None:
+        return None
+    if not isinstance(raw, str):
+        raise TypeError("execution ledger diagnostics are invalid")
+    value = json.loads(raw)
+    if not isinstance(value, dict):
+        raise TypeError("execution ledger diagnostics are invalid")
+    return value

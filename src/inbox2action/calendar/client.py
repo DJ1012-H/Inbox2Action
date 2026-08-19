@@ -9,11 +9,17 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from .diagnostics import (
+    InsertAttemptDiagnostic,
+    InsertOutcomeClass,
+    sanitized_text,
+)
 from .errors import (
     GoogleCalendarApiError,
     GoogleCalendarConflictError,
     GoogleCalendarError,
     GoogleCalendarInvalidResponseError,
+    GoogleCalendarLocalClientError,
     GoogleCalendarNotFoundError,
     GoogleCalendarResponseDiagnostics,
     GoogleCalendarTransportError,
@@ -35,6 +41,8 @@ class GoogleCalendarClient:
 
     def __init__(self, service: Any) -> None:
         self._service = service
+        self.last_insert_diagnostic: InsertAttemptDiagnostic | None = None
+        self.last_get_diagnostic: GoogleCalendarResponseDiagnostics | None = None
 
     @classmethod
     def from_credentials_provider(
@@ -76,17 +84,26 @@ class GoogleCalendarClient:
         event_id: str,
         body: Mapping[str, Any],
     ) -> Mapping[str, Any]:
-        request = self._service.events().insert(
-            calendarId=calendar_id,
-            eventId=event_id,
-            body=dict(body),
-            sendUpdates="none",
-        )
+        self.last_insert_diagnostic = None
+        try:
+            request = self._service.events().insert(
+                calendarId=calendar_id,
+                eventId=event_id,
+                body=dict(body),
+                sendUpdates="none",
+            )
+        except Exception as exc:  # noqa: BLE001 - local request construction boundary
+            diagnostic = _local_insert_diagnostic(exc)
+            self.last_insert_diagnostic = diagnostic
+            raise GoogleCalendarLocalClientError(
+                insert_diagnostic=diagnostic
+            ) from None
         return _execute_request(
             request,
             operation="events.insert",
             insert=True,
             require_event_resource=True,
+            insert_diagnostic_sink=self._record_insert_diagnostic,
         )
 
     def get_event(
@@ -95,8 +112,28 @@ class GoogleCalendarClient:
         calendar_id: str,
         event_id: str,
     ) -> Mapping[str, Any]:
-        request = self._service.events().get(calendarId=calendar_id, eventId=event_id)
-        return _execute_request(request, operation="events.get")
+        self.last_get_diagnostic = None
+        try:
+            request = self._service.events().get(
+                calendarId=calendar_id,
+                eventId=event_id,
+            )
+        except Exception:  # noqa: BLE001 - local request construction boundary
+            raise GoogleCalendarLocalClientError() from None
+        return _execute_request(
+            request,
+            operation="events.get",
+            response_diagnostic_sink=self._record_get_diagnostic,
+        )
+
+    def _record_insert_diagnostic(self, diagnostic: InsertAttemptDiagnostic) -> None:
+        self.last_insert_diagnostic = diagnostic
+
+    def _record_get_diagnostic(
+        self,
+        diagnostic: GoogleCalendarResponseDiagnostics,
+    ) -> None:
+        self.last_get_diagnostic = diagnostic
 
 
 def _default_service_factory(credentials: Any) -> Any:
@@ -113,6 +150,10 @@ def _execute_request(
     operation: str,
     insert: bool = False,
     require_event_resource: bool = False,
+    insert_diagnostic_sink: Callable[[InsertAttemptDiagnostic], None] | None = None,
+    response_diagnostic_sink: Callable[
+        [GoogleCalendarResponseDiagnostics], None
+    ] | None = None,
 ) -> Mapping[str, Any]:
     observation = _ResponseObservation()
     callbacks = getattr(request, "response_callbacks", None)
@@ -125,15 +166,42 @@ def _execute_request(
             exc,
             insert=insert,
             http_response=observation.http_response,
+            request_may_have_reached_server=True,
         )
+        if mapped.diagnostics is not None and response_diagnostic_sink is not None:
+            response_diagnostic_sink(mapped.diagnostics)
+        if mapped.insert_diagnostic is not None and insert_diagnostic_sink is not None:
+            insert_diagnostic_sink(mapped.insert_diagnostic)
         _log_diagnostics(operation, mapped.diagnostics)
+        _log_insert_diagnostic(operation, mapped.insert_diagnostic)
         raise mapped from None
     diagnostics = _diagnostics_for_value(
         response,
         http_response=observation.http_response,
     )
+    if response_diagnostic_sink is not None:
+        response_diagnostic_sink(diagnostics)
     if require_event_resource:
-        return _require_event_resource(response, diagnostics)
+        try:
+            event = _require_event_resource(response, diagnostics)
+        except GoogleCalendarInvalidResponseError as error:
+            diagnostic = _insert_response_diagnostic(
+                diagnostics,
+                outcome_class=InsertOutcomeClass.INVALID_SUCCESS_RESPONSE,
+            )
+            if insert_diagnostic_sink is not None:
+                insert_diagnostic_sink(diagnostic)
+            raise GoogleCalendarInvalidResponseError(
+                diagnostics=diagnostics,
+                insert_diagnostic=diagnostic,
+            ) from error
+        diagnostic = _insert_response_diagnostic(
+            diagnostics,
+            outcome_class=InsertOutcomeClass.SUCCESS_RESPONSE,
+        )
+        if insert_diagnostic_sink is not None:
+            insert_diagnostic_sink(diagnostic)
+        return event
     return _require_mapping(response, diagnostics)
 
 
@@ -162,22 +230,58 @@ def _map_error(
     *,
     insert: bool = False,
     http_response: Any = None,
+    request_may_have_reached_server: bool = True,
 ) -> GoogleCalendarError:
-    diagnostics = _diagnostics_for_error(error, http_response=http_response)
+    diagnostics, decoded = _diagnostics_for_error(
+        error,
+        http_response=http_response,
+    )
     status = _http_status(error, response=http_response)
+    insert_diagnostic = None
+    if insert:
+        if status == 409:
+            outcome_class = InsertOutcomeClass.DUPLICATE_409
+        elif status is not None and status < 300:
+            outcome_class = InsertOutcomeClass.INVALID_SUCCESS_RESPONSE
+        elif status is not None:
+            outcome_class = InsertOutcomeClass.DEFINITIVE_HTTP_FAILURE
+        elif isinstance(error, (TimeoutError, OSError)):
+            outcome_class = InsertOutcomeClass.AMBIGUOUS_TRANSPORT_FAILURE
+        else:
+            outcome_class = InsertOutcomeClass.LOCAL_CLIENT_FAILURE
+        insert_diagnostic = _insert_error_diagnostic(
+            error,
+            diagnostics=diagnostics,
+            decoded=decoded,
+            outcome_class=outcome_class,
+            request_may_have_reached_server=request_may_have_reached_server,
+        )
     if status == 404:
-        return GoogleCalendarNotFoundError(diagnostics=diagnostics)
+        return GoogleCalendarNotFoundError(
+            diagnostics=diagnostics,
+            insert_diagnostic=insert_diagnostic,
+        )
     if status == 409:
-        return GoogleCalendarConflictError(diagnostics=diagnostics)
+        return GoogleCalendarConflictError(
+            diagnostics=diagnostics,
+            insert_diagnostic=insert_diagnostic,
+        )
     if status is not None:
         return GoogleCalendarApiError(
             status=status,
-            ambiguous=insert and (status == 408 or status == 429 or status >= 500),
+            ambiguous=False,
             diagnostics=diagnostics,
+            insert_diagnostic=insert_diagnostic,
         )
     if isinstance(error, (TimeoutError, OSError)):
-        return GoogleCalendarTransportError(diagnostics=diagnostics)
-    return GoogleCalendarInvalidResponseError(diagnostics=diagnostics)
+        return GoogleCalendarTransportError(
+            diagnostics=diagnostics,
+            insert_diagnostic=insert_diagnostic,
+        )
+    return GoogleCalendarLocalClientError(
+        diagnostics=diagnostics,
+        insert_diagnostic=insert_diagnostic,
+    )
 
 
 def _http_status(error: Exception, *, response: Any = None) -> int | None:
@@ -199,7 +303,7 @@ def _diagnostics_for_error(
     error: Exception,
     *,
     http_response: Any = None,
-) -> GoogleCalendarResponseDiagnostics:
+) -> tuple[GoogleCalendarResponseDiagnostics, Any]:
     response = http_response if http_response is not None else getattr(error, "resp", None)
     content = getattr(error, "content", None)
     decoded, decoded_type = _decode_content_metadata(content)
@@ -207,7 +311,84 @@ def _diagnostics_for_error(
         decoded,
         http_response=response,
         decoded_type=decoded_type,
+    ), decoded
+
+
+def _insert_response_diagnostic(
+    diagnostics: GoogleCalendarResponseDiagnostics,
+    *,
+    outcome_class: InsertOutcomeClass,
+) -> InsertAttemptDiagnostic:
+    return InsertAttemptDiagnostic(
+        outcome_class=outcome_class,
+        http_status=diagnostics.http_status,
+        content_type=diagnostics.content_type,
+        decoded_type=diagnostics.decoded_type,
+        top_level_keys=diagnostics.top_level_keys,
+        has_id=diagnostics.has_id,
+        has_status=diagnostics.has_status,
+        has_html_link=diagnostics.has_html_link,
+        has_error=diagnostics.has_error,
+        response_received=True,
+        request_may_have_reached_server=True,
     )
+
+
+def _insert_error_diagnostic(
+    error: Exception,
+    *,
+    diagnostics: GoogleCalendarResponseDiagnostics,
+    decoded: Any,
+    outcome_class: InsertOutcomeClass,
+    request_may_have_reached_server: bool,
+) -> InsertAttemptDiagnostic:
+    return InsertAttemptDiagnostic(
+        outcome_class=outcome_class,
+        exception_type=type(error).__name__,
+        http_status=diagnostics.http_status,
+        content_type=diagnostics.content_type,
+        decoded_type=diagnostics.decoded_type,
+        top_level_keys=diagnostics.top_level_keys,
+        has_id=diagnostics.has_id,
+        has_status=diagnostics.has_status,
+        has_html_link=diagnostics.has_html_link,
+        has_error=diagnostics.has_error,
+        provider_reason=_provider_reason(error, decoded),
+        response_received=diagnostics.http_status is not None
+        or diagnostics.content_type is not None
+        or diagnostics.has_error,
+        request_may_have_reached_server=request_may_have_reached_server,
+    )
+
+
+def _local_insert_diagnostic(error: Exception) -> InsertAttemptDiagnostic:
+    return InsertAttemptDiagnostic(
+        outcome_class=InsertOutcomeClass.LOCAL_CLIENT_FAILURE,
+        exception_type=type(error).__name__,
+        provider_reason=sanitized_text(error),
+        response_received=False,
+        request_may_have_reached_server=False,
+    )
+
+
+def _provider_reason(error: Exception, decoded: Any) -> str | None:
+    if isinstance(decoded, Mapping):
+        payload = decoded.get("error")
+        if isinstance(payload, Mapping):
+            reason: str | None = None
+            errors = payload.get("errors")
+            if isinstance(errors, list) and errors:
+                first = errors[0]
+                if isinstance(first, Mapping) and isinstance(first.get("reason"), str):
+                    reason = first["reason"]
+            message = payload.get("message")
+            if reason and isinstance(message, str):
+                return sanitized_text(f"{reason}: {message}")
+            if isinstance(message, str):
+                return sanitized_text(message)
+            if reason:
+                return sanitized_text(reason)
+    return sanitized_text(getattr(error, "reason", None) or error)
 
 
 def _diagnostics_for_value(
@@ -284,4 +465,16 @@ def _log_diagnostics(
             "google_calendar_response_diagnostics operation=%s diagnostics=%s",
             operation,
             diagnostics.as_dict(),
+        )
+
+
+def _log_insert_diagnostic(
+    operation: str,
+    diagnostic: InsertAttemptDiagnostic | None,
+) -> None:
+    if diagnostic is not None:
+        _LOGGER.warning(
+            "google_calendar_insert_diagnostic operation=%s diagnostic=%s",
+            operation,
+            diagnostic.as_dict(),
         )

@@ -766,6 +766,19 @@ def test_postgres_resource_helpers_and_metadata_preserve_legacy_nulls() -> None:
         "payload_hash": permit.approved_payload_hash,
         "status": "succeeded",
         "error_code": None,
+        "diagnostics_json": json.dumps(
+            {
+                "insert_attempt": {
+                    "outcome_class": "AMBIGUOUS_TRANSPORT_FAILURE",
+                    "top_level_keys": [],
+                },
+                "reconciliation": {
+                    "get_attempt_count": 1,
+                    "attempts": [],
+                    "final_outcome": "not_found",
+                },
+            }
+        ),
         "resource_provider": "clickup",
         "resource_type": "task",
         "resource_id": "task-123",
@@ -775,6 +788,17 @@ def test_postgres_resource_helpers_and_metadata_preserve_legacy_nulls() -> None:
     recovered = _execution_result_from_row(row)
     assert recovered.resource is not None
     assert recovered.resource.resource_id == "task-123"
+    assert recovered.diagnostics == {
+        "insert_attempt": {
+            "outcome_class": "AMBIGUOUS_TRANSPORT_FAILURE",
+            "top_level_keys": [],
+        },
+        "reconciliation": {
+            "get_attempt_count": 1,
+            "attempts": [],
+            "final_outcome": "not_found",
+        },
+    }
     _validate_binding(row, permit)
 
     legacy = dict(row)
@@ -786,6 +810,7 @@ def test_postgres_resource_helpers_and_metadata_preserve_legacy_nulls() -> None:
             "resource_type": None,
             "resource_id": None,
             "resource_url": None,
+            "diagnostics_json": None,
         }
     )
     assert _execution_result_from_row(legacy) == ExecutionResult(

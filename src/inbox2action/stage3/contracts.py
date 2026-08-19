@@ -257,6 +257,10 @@ class ExecutionResult(BaseModel):
     status: Literal["succeeded", "failed", "unknown"]
     error_code: str | None = Field(default=None, max_length=64)
     resource: ExternalResourceRef | None = None
+    diagnostics: dict[str, object] | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
 
     @model_validator(mode="after")
     def validate_resource_status(self) -> ExecutionResult:

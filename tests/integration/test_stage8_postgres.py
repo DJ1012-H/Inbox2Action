@@ -64,7 +64,17 @@ async def test_google_calendar_resource_survives_ledger_reopen_without_rewrite()
         resource_type="event",
         resource_id="deterministic-google-event-id",
     )
-    result = ExecutionResult(status="succeeded", resource=resource)
+    result = ExecutionResult(
+        status="succeeded",
+        resource=resource,
+        diagnostics={
+            "insert_attempt": {
+                "outcome_class": "SUCCESS_RESPONSE",
+                "response_received": True,
+            },
+            "reconciliation": None,
+        },
+    )
     provider_insert_count = 1
 
     ledger = PostgresExecutionLedger(database_url)

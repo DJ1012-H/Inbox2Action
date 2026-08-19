@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .diagnostics import InsertAttemptDiagnostic
+
 
 @dataclass(frozen=True, slots=True)
 class GoogleCalendarResponseDiagnostics:
@@ -42,10 +44,12 @@ class GoogleCalendarError(Exception):
         *,
         status: int | None = None,
         diagnostics: GoogleCalendarResponseDiagnostics | None = None,
+        insert_diagnostic: InsertAttemptDiagnostic | None = None,
     ) -> None:
         self.code = code or self.code
         self.status = status
         self.diagnostics = diagnostics
+        self.insert_diagnostic = insert_diagnostic
         super().__init__(self.code)
 
 
@@ -55,6 +59,10 @@ class GoogleCalendarConfigurationError(GoogleCalendarError):
 
 class GoogleCalendarInvalidResponseError(GoogleCalendarError):
     code = "invalid_response"
+
+
+class GoogleCalendarLocalClientError(GoogleCalendarError):
+    code = "local_client_failure"
 
 
 class GoogleCalendarTransportError(GoogleCalendarError):
@@ -70,8 +78,13 @@ class GoogleCalendarApiError(GoogleCalendarError):
         status: int,
         ambiguous: bool = False,
         diagnostics: GoogleCalendarResponseDiagnostics | None = None,
+        insert_diagnostic: InsertAttemptDiagnostic | None = None,
     ) -> None:
-        super().__init__(status=status, diagnostics=diagnostics)
+        super().__init__(
+            status=status,
+            diagnostics=diagnostics,
+            insert_diagnostic=insert_diagnostic,
+        )
         self.ambiguous = ambiguous
 
 
@@ -82,8 +95,14 @@ class GoogleCalendarConflictError(GoogleCalendarApiError):
         self,
         *,
         diagnostics: GoogleCalendarResponseDiagnostics | None = None,
+        insert_diagnostic: InsertAttemptDiagnostic | None = None,
     ) -> None:
-        super().__init__(status=409, ambiguous=True, diagnostics=diagnostics)
+        super().__init__(
+            status=409,
+            ambiguous=True,
+            diagnostics=diagnostics,
+            insert_diagnostic=insert_diagnostic,
+        )
 
 
 class GoogleCalendarNotFoundError(GoogleCalendarApiError):
@@ -93,5 +112,11 @@ class GoogleCalendarNotFoundError(GoogleCalendarApiError):
         self,
         *,
         diagnostics: GoogleCalendarResponseDiagnostics | None = None,
+        insert_diagnostic: InsertAttemptDiagnostic | None = None,
     ) -> None:
-        super().__init__(status=404, ambiguous=False, diagnostics=diagnostics)
+        super().__init__(
+            status=404,
+            ambiguous=False,
+            diagnostics=diagnostics,
+            insert_diagnostic=insert_diagnostic,
+        )

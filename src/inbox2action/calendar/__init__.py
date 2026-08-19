@@ -6,12 +6,20 @@ from .availability import (
     GoogleCalendarFreeBusyAdapter,
 )
 from .client import GoogleCalendarClient
+from .diagnostics import (
+    InsertAttemptDiagnostic,
+    InsertOutcomeClass,
+    ReconciliationAttemptDiagnostic,
+    ReconciliationDiagnostic,
+    ReconciliationOutcome,
+)
 from .errors import (
     GoogleCalendarApiError,
     GoogleCalendarConfigurationError,
     GoogleCalendarConflictError,
     GoogleCalendarError,
     GoogleCalendarInvalidResponseError,
+    GoogleCalendarLocalClientError,
     GoogleCalendarNotFoundError,
     GoogleCalendarResponseDiagnostics,
     GoogleCalendarTransportError,
@@ -30,8 +38,14 @@ __all__ = [
     "GoogleCalendarError",
     "GoogleCalendarFreeBusyAdapter",
     "GoogleCalendarInvalidResponseError",
+    "GoogleCalendarLocalClientError",
     "GoogleCalendarNotFoundError",
     "GoogleCalendarResponseDiagnostics",
     "GoogleCalendarTransportError",
     "GoogleCalendarWriteExecutor",
+    "InsertAttemptDiagnostic",
+    "InsertOutcomeClass",
+    "ReconciliationAttemptDiagnostic",
+    "ReconciliationDiagnostic",
+    "ReconciliationOutcome",
 ]
