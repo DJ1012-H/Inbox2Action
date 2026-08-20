@@ -1,10 +1,11 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17.5-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-inbox2action}
-      POSTGRES_USER: ${POSTGRES_USER:-inbox2action}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inbox2action_dev}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
@@ -14,6 +15,77 @@ services:
       retries: 20
     volumes:
       - inbox2action-postgres:/var/lib/postgresql/data
+
+  migrate:
+    build:
+      context: .
+    restart: "no"
+    env_file:
+      - ${INBOX2ACTION_ENV_FILE:-.env}
+    environment:
+      INBOX2ACTION_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    command: ["scripts/setup_stage4_postgres.py"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+    restart: unless-stopped
+    env_file:
+      - ${INBOX2ACTION_ENV_FILE:-.env}
+    environment:
+      INBOX2ACTION_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    command: ["scripts/run_stage8_approval_ui.py", "--host", "0.0.0.0", "--port", "8080", "--skip-migrations"]
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    stop_grace_period: 15s
+    volumes:
+      - type: bind
+        source: ${GMAIL_CLIENT_SECRETS_HOST_PATH:?GMAIL_CLIENT_SECRETS_HOST_PATH must be set in .env}
+        target: /run/inbox2action/gmail-oauth-client.json
+        read_only: true
+      - type: bind
+        source: ${GMAIL_TOKEN_HOST_PATH:?GMAIL_TOKEN_HOST_PATH must be set in .env}
+        target: /run/inbox2action/gmail-token.json
+
+  worker:
+    build:
+      context: .
+    restart: unless-stopped
+    env_file:
+      - ${INBOX2ACTION_ENV_FILE:-.env}
+    environment:
+      INBOX2ACTION_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    command: ["scripts/run_stage8_worker.py", "--max-messages", "10", "--poll-interval-seconds", "60", "--skip-migrations", "--ready-file", "/tmp/inbox2action-worker.ready"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "from pathlib import Path; raise SystemExit(0 if Path('/tmp/inbox2action-worker.ready').exists() else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    stop_grace_period: 20s
+    volumes:
+      - type: bind
+        source: ${GMAIL_CLIENT_SECRETS_HOST_PATH:?GMAIL_CLIENT_SECRETS_HOST_PATH must be set in .env}
+        target: /run/inbox2action/gmail-oauth-client.json
+        read_only: true
+      - type: bind
+        source: ${GMAIL_TOKEN_HOST_PATH:?GMAIL_TOKEN_HOST_PATH must be set in .env}
+        target: /run/inbox2action/gmail-token.json
 
 volumes:
   inbox2action-postgres:

@@ -1,102 +1,159 @@
 # Inbox2Action
 
-Inbox2Action is developed through staged, fail-closed safety validation.
+Inbox2Action is a **Stateful Ambient Action Agent**: it turns bounded Gmail
+input into reviewed, durable and recoverable actions. The engineering problem
+is not only whether an LLM can read an email; it is whether a proposed action
+can execute safely under human approval, durable state, idempotency and
+provider failure.
 
-## Current status
+## What is implemented
 
-Stages 1 through 4 meet their acceptance criteria. Stage 4 uses the LangGraph
-PostgreSQL checkpointer as the single short-term workflow state and a separate
-execution ledger only for side-effect claims. Its Docker PostgreSQL
-interrupt/reconnect/resume acceptance case passed on 2026-08-12.
+The current Stage 1–10 baseline provides:
 
-The Stage 5 Gmail readonly transport passed its real Desktop OAuth, external
-token persistence/refresh, profile, and bounded metadata smoke on 2026-08-15.
-Stage 6 now provides a bounded Gmail-body adapter, polling/deduplication,
-Stage 2 proposal handoff, and a local approval API/UI over the existing
-LangGraph workflow. Real Gmail-to-DeepSeek-to-PostgreSQL acceptance remains
-explicitly opt-in and is not claimed by the offline tests.
+- Gmail readonly OAuth ingestion, MIME normalization, PII sanitization and deduplication.
+- DeepSeek-compatible structured triage and a bounded multi-turn Tool Loop.
+- LangGraph HITL interrupts with approval, edit, reject, clarify and stale-revision checks.
+- PostgreSQL-backed checkpoints, `PostgresStore` long-term memory and a durable execution ledger.
+- ClickUp and Google Calendar provider boundaries with deterministic identities and readonly reconciliation.
+- Cross-process restart recovery, account isolation, idempotency and prompt-injection policy enforcement.
+- A canonical 120-case Stage 10 evaluation and security regression suite.
 
-Stage 7 adds the durable ClickUp write boundary: `save_task_proposal` is
-reviewed through HITL, bound to an `ExecutionPermit`, claimed in the durable
-ledger, and only then translated into one ClickUp Task. The provider marker is
-the unique `Inbox2Action Key` text Custom Field discovered at startup; its
-value is the permit's stable idempotency key. Ambiguous POST outcomes use
-bounded GET-only reconciliation, and UNKNOWN executions have a restart-only
-reconciliation path. Provider-disabled, unapproved, rejected, stale, missing
-or invalid marker configuration remains fail-closed. Live Stage 7 acceptance
-is pending the configured test List having that Custom Field; no live Task is
-claimed by the offline or PostgreSQL tests.
+The Docker `api` service exposes the existing local approval page/API from
+`scripts/run_stage8_approval_ui.py`; it is a small standard-library HTTP
+server, not a second web application. The `worker` service reuses
+`scripts/run_stage8_worker.py` and repeats the existing bounded poll.
 
-Stage 8 adds the Google Calendar FreeBusy read adapter, conflict-aware
-Calendar Agent loop, local-only `save_calendar_proposal`, and a deterministic
-HITL/ledger-guarded Events.insert adapter. Its live OAuth/FreeBusy/event gate
-remains separate until the explicit reauthorization and smoke commands in
-`docs/stage-8-google-calendar.md` are run.
+## Architecture
 
-Stage 2 passed its frozen real-model acceptance on 2026-08-09. The final
-`deepseek-v4-flash` formal60 batch achieved:
+```text
+Gmail readonly OAuth
+        |
+        v
+GmailWorkflowWorker -> normalize/deduplicate -> Gmail/Calendar planner
+        |                                      |
+        +------------------------------> LangGraph Tool Loop
+                                               |
+                                      HITL interrupt / proposal
+                                               |
+                                      approval API and UI
+                                               |
+                               ExecutionPermit -> ExecutionLedger
+                                               |
+                               ClickUp / Google Calendar executor
+```
 
-- overall acceptance: `58/60` (`96.67%`)
-- independent holdout acceptance: `19/20` (`95%`)
-- argument accuracy: `58/60` (`96.67%`)
-- Triage, Security Triage, Tool Selection, Tool Sequence, Action Plan,
-  Parameter Resolution, Action Dependencies, Fixture Resolution, and Tool
-  Boundary Safety: `100%`
-- unauthorized/unknown/forbidden Tool activity, external side effects,
-  unauthorized writes, approval bypasses, and loop-limit failures: `0`
+PostgreSQL is shared by the API and Worker. It stores LangGraph checkpoints,
+the long-term `PostgresStore`, the workflow identity index and the durable
+execution ledger. See [the architecture document](docs/architecture.md) and
+[the graph lifecycle](docs/graph.md).
 
-The preceding independent formal attempt remains recorded as `FAIL`; its
-holdout was never rerun. See
-`evidence/stage-2/stage2-formal-final-attempt-2-summary.md` for the passing
-redacted evidence and `docs/stage-2/model-validation-report.md` for the full
-stage-two history.
+## Quick start with Docker Compose
 
-## Scope boundary
+The canonical startup is one Compose project with `postgres`, a one-shot
+`migrate` service, `api`, and `worker`:
 
-Stage 3 adds a provider-neutral EmailActionAgent graph, a validated Stage 2
-ActionPlan handoff, real LangGraph approval interrupts, approval revisions,
-Tool-specific parameters, dependency ordering, approved-payload binding, and
-multi-action execution. Stage 4 adds PostgreSQL persistence, LangGraph
-checkpoint/store integration, and a durable execution claim ledger. Stage 5
-provides the separately gated Gmail readonly OAuth transport; Stage 6 connects
-that transport to the existing Agent boundary. Gmail writes, Calendar,
-ClickUp and all other real provider writes remain separately gated. Stage 6
-only exposes local proposal Tools and never enables real provider writes. See
-`docs/stage-6-gmail-hitl.md` for the bounded worker and approval UI, and
-`docs/stage-7-clickup-durable-hitl.md` for the ClickUp boundary.
+```powershell
+Copy-Item .env.example .env
+# Edit .env: set a local PostgreSQL password, the two external Gmail file paths,
+# and any explicitly authorized LLM/provider settings.
+docker compose --env-file .env config
+docker compose --env-file .env up --build
+```
 
-The Gmail transport setup and manual commands are documented in
-`docs/stage-5-gmail-readonly-oauth.md`. Evaluation fixtures remain under
-`eval/dataset-vnext` and are not imported by the production transport.
+Open the approval page at [http://localhost:8080/](http://localhost:8080/).
+The `worker` polls Gmail every 60 seconds, deduplicates by account/message
+identity, and pauses action workflows at HITL. `migrate` is the only Compose
+service that runs Alembic; API and Worker use `--skip-migrations`.
 
-Passing Tool Boundary Safety does not establish complete end-to-end Prompt
-Injection response quality; refusal and risk-warning quality remain unmeasured.
+To stop while retaining PostgreSQL state:
 
-## Local setup
+```powershell
+docker compose --env-file .env down
+```
 
-Create the one local runtime file manually at
-`%LOCALAPPDATA%\Inbox2Action\secrets\runtime.env`, using `.env.example` as a
-safe template. Do not copy real credentials into the repository. `Settings`
-loads that external file automatically, while process environment variables
-override it. The default configuration keeps the model disabled; formal model
-runs additionally require explicit live-model, API-cost, and frozen-asset
-confirmations.
+Do not use `down -v` for normal shutdown. The named volume is the durable demo
+state. OAuth client JSON and token files are bind-mounted from the host and are
+never copied into the image.
 
-For the Stage 4 database workflow, start `postgres` with
-`docker compose up -d postgres`, apply the schema with
-`uv run --frozen python scripts/setup_stage4_postgres.py`, and then run
-`tests/integration/test_stage4_postgres.py` with the opt-in variables shown in
-`docs/stage-4-persistence.md`.
-
-With the external runtime file configured, the bounded Stage 6 commands are:
+For a host-only bounded poll, use the existing entrypoint after configuring the
+external runtime file described in `.env.example` (use `localhost`, not the
+Compose service name `postgres`, in its database URL):
 
 ```powershell
 uv run --frozen python scripts/setup_stage4_postgres.py
-uv run --frozen python scripts/run_stage6_worker.py --max-messages 1
-uv run --frozen python scripts/run_stage6_approval_ui.py --port 8081
+uv run --frozen python scripts/run_stage8_worker.py --max-messages 1
+uv run --frozen python scripts/run_stage8_approval_ui.py --port 8081
 ```
 
-The worker/UI use the configured Gmail paths. `--client-secrets` and
-`--token-path` remain available as explicit per-run overrides; no directory
-scanning is performed. The UI binds to `127.0.0.1`; the example uses port
-`8081` for a local session.
+## Security model
+
+Email is untrusted data. It cannot change trusted configuration, grant a tool,
+read credentials, bypass HITL, override an `ExecutionPermit`, or turn a
+provider observation into a trusted fact. The effective precedence is:
+
+```text
+trusted configuration and security policy
+  > tool allowlist and execution contract
+  > human approval / approved payload
+  > normalized email content
+  > provider observations and memory, subject to their contracts
+```
+
+Provider writes occur only after approval, permit validation, a durable ledger
+claim and executor checks. An ambiguous provider result is reconciled through a
+readonly identity check; it is not retried blindly. See [SECURITY.md](SECURITY.md)
+and [the tool security policy](docs/tool-security-policy.md).
+
+## Evaluation
+
+The observed Stage 10 report is generated from the redacted machine result at
+`evaluation/results/stage10-final.json`; it is not a target or a marketing
+number. The report records 120 approved cases, verified approval provenance,
+triage 1.0 accuracy/macro-F1, 1.0 tool-selection F1, 93/93 critical arguments,
+120/120 trajectories, 36/36 applicable date/time cases, and 120/120 security
+cases with zero violations. It also records zero ClickUp POSTs and zero
+Calendar inserts during the benchmark.
+
+Regenerate the tracked report from an available Stage 10 result:
+
+```powershell
+uv run --frozen python scripts/generate_final_metrics_report.py
+```
+
+Run safe Stage 11 checks (no provider writes and no live-model calls):
+
+```powershell
+uv run --frozen python scripts/run_stage11_acceptance.py --run-tests
+```
+
+The Stage 10 source result is intentionally a local redacted run artifact and
+is ignored by Git. If it is absent, the acceptance result says so rather than
+reconstructing numbers from prose.
+
+## Demo and interview preparation
+
+- [Demo guide](docs/demo-guide.md) — five end-to-end scenarios and evidence.
+- [Demo video script](docs/demo-video-script.md) — deterministic recording order.
+- [Interview guide](docs/interview-guide.md) — 20 implementation-specific questions.
+- [Project overview](docs/project-overview.md) — the final engineering narrative.
+- [Evaluation report](docs/evaluation-report.md) — generated observed metrics.
+
+## Limitations
+
+- The demo uses a test Gmail account and dedicated ClickUp List/Calendar.
+- Gmail access is readonly; there is no automatic email send.
+- Proposal tools are bounded; there is no arbitrary code execution, arbitrary
+  HTTP, or arbitrary SQL.
+- Provider acceptance requires explicit OAuth/runtime configuration and is not
+  performed by the offline Stage 11 acceptance script.
+- Docker runtime smoke and the final screen recording are environment/manual
+  gates; this repository does not claim a video artifact that is not present.
+
+## Project status
+
+Stage 10 is the frozen functional/security baseline. Stage 11 packages and
+documents that baseline. `Engineering: COMPLETE` requires packaging,
+documentation, metrics provenance and regression checks. `STAGE 11 COMPLETE`
+also requires a real Compose runtime smoke, final demo validation and an actual
+recorded video artifact; otherwise the final verdict remains `INCOMPLETE` with
+the remaining manual gate listed explicitly.
