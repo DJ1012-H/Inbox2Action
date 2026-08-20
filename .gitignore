@@ -20,5 +20,6 @@ build/
 *.egg-info/
 evaluation/results/*.json
 evaluation/results/*.jsonl
+evaluation/results/*.md
 evidence/stage-2/private/
 .secrets.baseline.candidate

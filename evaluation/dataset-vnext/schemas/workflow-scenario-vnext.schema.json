@@ -1,0 +1,148 @@
+{
+  "$defs": {
+    "WorkflowExpectationVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_bypasses": {
+          "const": 0,
+          "default": 0,
+          "title": "Approval Bypasses",
+          "type": "integer"
+        },
+        "duplicate_writes": {
+          "const": 0,
+          "default": 0,
+          "title": "Duplicate Writes",
+          "type": "integer"
+        },
+        "requires_reconciliation": {
+          "default": false,
+          "title": "Requires Reconciliation",
+          "type": "boolean"
+        },
+        "same_action_identity": {
+          "default": true,
+          "title": "Same Action Identity",
+          "type": "boolean"
+        },
+        "successful_writes": {
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Successful Writes",
+          "type": "integer"
+        },
+        "terminal_status": {
+          "enum": [
+            "completed",
+            "rejected",
+            "failed",
+            "unknown",
+            "blocked",
+            "pending"
+          ],
+          "title": "Terminal Status",
+          "type": "string"
+        },
+        "write_attempts": {
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Write Attempts",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "terminal_status",
+        "write_attempts",
+        "successful_writes"
+      ],
+      "title": "WorkflowExpectationVNext",
+      "type": "object"
+    },
+    "WorkflowScenarioType": {
+      "enum": [
+        "duplicate_delivery",
+        "approval_edit",
+        "stale_approval",
+        "restart_recovery",
+        "provider_failure",
+        "provider_unknown",
+        "payload_hash_mismatch",
+        "dependency_order",
+        "rejection",
+        "retry_after_failure"
+      ],
+      "title": "WorkflowScenarioType",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "dataset_version": {
+      "const": "inbox2action-vnext-candidate-1",
+      "default": "inbox2action-vnext-candidate-1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "deterministic_only": {
+      "const": true,
+      "default": true,
+      "title": "Deterministic Only",
+      "type": "boolean"
+    },
+    "events": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 12,
+      "minItems": 1,
+      "title": "Events",
+      "type": "array"
+    },
+    "expected": {
+      "$ref": "#/$defs/WorkflowExpectationVNext"
+    },
+    "fixture_ids": {
+      "items": {
+        "maxLength": 96,
+        "minLength": 3,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+        "type": "string"
+      },
+      "title": "Fixture Ids",
+      "type": "array"
+    },
+    "scenario_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Scenario Id",
+      "type": "string"
+    },
+    "scenario_type": {
+      "$ref": "#/$defs/WorkflowScenarioType"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "scenario_id",
+    "case_id",
+    "scenario_type",
+    "events",
+    "expected"
+  ],
+  "title": "WorkflowScenarioVNext",
+  "type": "object"
+}

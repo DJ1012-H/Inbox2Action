@@ -1,0 +1,165 @@
+{
+  "approval_receipts": [
+    "approvals/batch-01.json",
+    "approvals/batch-02.json",
+    "approvals/batch-03.json",
+    "approvals/batch-04.json",
+    "approvals/batch-05.json",
+    "approvals/batch-06.json",
+    "approvals/batch-07.json",
+    "approvals/batch-08.json",
+    "approvals/batch-09.json",
+    "approvals/batch-10.json",
+    "approvals/batch-11.json",
+    "approvals/batch-12.json",
+    "approvals/batch-13.json"
+  ],
+  "approved_batch_count": 13,
+  "approved_item_count": 260,
+  "asset_sha256": {
+    "README.md": "784fb715a97d0b5bbbe14846e36e7c86b96ee2969c2e39049aa373db05bcd659",
+    "approvals/batch-01.json": "3b55daee7875ce33aa3168d9cbbdbf5ac5fa1c32de4ef739cff611ca0e7e8da9",
+    "approvals/batch-02.json": "f6a1d0da9e072aa936de73ff39d696d4c4427fe767ac08c0cac2a975af76f39d",
+    "approvals/batch-03.json": "cd9940f804cfea5cf64d3c47f4bfb8491c43ff0101e87d0f7b457ac7d5420e94",
+    "approvals/batch-04.json": "f0a8d21d7aa014677986e3f45d52662bfcd8b622162abb1227a81c37bbdbd1b4",
+    "approvals/batch-05.json": "ee1fd0368bc07da5cf76908c9ef089a337c1b3d93d60d293a8e4958bd955a227",
+    "approvals/batch-06.json": "6ffd14768d724cac6f7bf19843dc37f944ca5e8dede509fb6120d047ce43a848",
+    "approvals/batch-07.json": "e10e52d071e5473f0fbf08b4677614fb0f5de1c2cdf1ea434ea64e85ecc98cce",
+    "approvals/batch-08.json": "085bd83b0bad4e9b2c018dd5f1143bd193a939273d77852efa514e02a021eed3",
+    "approvals/batch-09.json": "a2dbaf34dba56cf5b3500df7dcb3425f4866bb9146b9c59833b367ae076935c8",
+    "approvals/batch-10.json": "36285b0c5851b693899929a0eaf9e03adbed7c45e7215ea72e280a306e4a43a6",
+    "approvals/batch-11.json": "f5149362eab6d2981559d9c22627199ab1027cd380a934060c3576ea00d008de",
+    "approvals/batch-12.json": "ff51df640271a1cf9fc86bd85bfb5fb1e2dca30c6d392643c2db17cb35a7de7b",
+    "approvals/batch-13.json": "9631ec7635bae526681af9c918ce315a3a39ddba1265dcd0fe02c09606c1e381",
+    "batch-01.md": "c7dd674ff0fab406df1b66c0148514f4f9860d4d6c1391dc565702865e2fe560",
+    "batch-02.md": "8cfc9feffc0cd7a3adb3db0e7cc4ef0dc6adb329c029f3cc0466fc1446ea03b9",
+    "batch-03.md": "6877ce456f6d6a30f8a62e8a06d790dddbef2ed0bc11b048345cdab7b32a8d9f",
+    "batch-04.md": "457505080430a11924a72b5f66c0ff2e18075b8ae6809cb919024496fce42304",
+    "batch-05.md": "7df678a29568e9209899dbe7151f22a128b78decd71ed2a7ff8916c0da02fe01",
+    "batch-06.md": "b34c46a0d1d4be7d6ae2160dba386cc87d523b186557c31d5d7e88ceaa9c8bb6",
+    "batch-07.md": "3af3058e12511520fb6a83bdc470995f1338c02b6090338be3053b646ee0f5ac",
+    "batch-08.md": "d87bf65947983096ed723bd886da31740fdc059f7ef65b4dd38ff4412d120365",
+    "batch-09.md": "6d8dc6ec316f193683c6915bd04284ea5ed1d64b472925250a8e70ebb7f74bde",
+    "batch-10.md": "51eecb50ee209cc0985ad0a1a20c3ac931c8151812f10c45c63d7a75cc830ff5",
+    "batch-11.md": "5600f828fe0ed76664e1818c2a16c84fdd2aa7ea758f39bd1fc3067880119df2",
+    "batch-12.md": "45fd837d3f704d2f1e3df85f5410bf050471610394ee85a76ea61dc97fbc262e",
+    "batch-13.md": "9ee06bc800ed4ed33d6ca9ba73c9a12551b4dd5acb4b4f0582e987602579520f",
+    "decisions-template.jsonl": "0cbcfb3539d72a0d3b51704a7b7c3fcdc11f2156809634fa37b7c12d334b4893"
+  },
+  "batch_count": 13,
+  "batch_metadata": [
+    {
+      "batch": 1,
+      "count": 20,
+      "domain": "email",
+      "filename": "batch-01.md",
+      "first_item_id": "vnext_dev_ordinary_001",
+      "last_item_id": "vnext_dev_notification_010"
+    },
+    {
+      "batch": 2,
+      "count": 20,
+      "domain": "email",
+      "filename": "batch-02.md",
+      "first_item_id": "vnext_dev_task_001",
+      "last_item_id": "vnext_dev_calendar_010"
+    },
+    {
+      "batch": 3,
+      "count": 20,
+      "domain": "email",
+      "filename": "batch-03.md",
+      "first_item_id": "vnext_dev_multi_action_001",
+      "last_item_id": "vnext_dev_prompt_injection_010"
+    },
+    {
+      "batch": 4,
+      "count": 20,
+      "domain": "email",
+      "filename": "batch-04.md",
+      "first_item_id": "vnext_reg_ordinary_001",
+      "last_item_id": "vnext_reg_calendar_005"
+    },
+    {
+      "batch": 5,
+      "count": 20,
+      "domain": "email",
+      "filename": "batch-05.md",
+      "first_item_id": "vnext_reg_multi_action_001",
+      "last_item_id": "vnext_sec_approval_bypass_010"
+    },
+    {
+      "batch": 6,
+      "count": 20,
+      "domain": "email",
+      "filename": "batch-06.md",
+      "first_item_id": "vnext_sec_approval_bypass_011",
+      "last_item_id": "vnext_sec_html_hidden_instruction_030"
+    },
+    {
+      "batch": 7,
+      "count": 20,
+      "domain": "control",
+      "filename": "batch-07.md",
+      "first_item_id": "gmail_access_allow_001",
+      "last_item_id": "gmail_access_deny_015"
+    },
+    {
+      "batch": 8,
+      "count": 20,
+      "domain": "control",
+      "filename": "batch-08.md",
+      "first_item_id": "gmail_access_deny_016",
+      "last_item_id": "gmail_pagination_010"
+    },
+    {
+      "batch": 9,
+      "count": 20,
+      "domain": "control",
+      "filename": "batch-09.md",
+      "first_item_id": "gmail_pagination_011",
+      "last_item_id": "gmail_content_010"
+    },
+    {
+      "batch": 10,
+      "count": 20,
+      "domain": "control",
+      "filename": "batch-10.md",
+      "first_item_id": "gmail_content_011",
+      "last_item_id": "gmail_content_030"
+    },
+    {
+      "batch": 11,
+      "count": 20,
+      "domain": "control",
+      "filename": "batch-11.md",
+      "first_item_id": "gmail_observability_001",
+      "last_item_id": "gmail_observability_020"
+    },
+    {
+      "batch": 12,
+      "count": 20,
+      "domain": "control",
+      "filename": "batch-12.md",
+      "first_item_id": "gmail_access_injection_001",
+      "last_item_id": "gmail_access_injection_020"
+    },
+    {
+      "batch": 13,
+      "count": 20,
+      "domain": "control",
+      "filename": "batch-13.md",
+      "first_item_id": "response_safety_pass_001",
+      "last_item_id": "response_safety_fail_010"
+    }
+  ],
+  "batch_size": 20,
+  "candidate_commit": "f0d015013178f0c7a74294d1d68a182cf2bdd3fe",
+  "control_item_count": 140,
+  "created_at": "2026-08-13",
+  "email_item_count": 120,
+  "formal_holdout_created": false,
+  "item_count": 260,
+  "review_state": "approved",
+  "schema_version": "dataset-vnext-review-packet-1"
+}

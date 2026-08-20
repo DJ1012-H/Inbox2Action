@@ -1,0 +1,228 @@
+{
+  "$defs": {
+    "AccessDecision": {
+      "enum": [
+        "allow_query",
+        "deny_before_query"
+      ],
+      "title": "AccessDecision",
+      "type": "string"
+    },
+    "AccessPolicyExpectedVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "$ref": "#/$defs/AccessDecision"
+        },
+        "inbox_wide_query_allowed": {
+          "const": false,
+          "default": false,
+          "title": "Inbox Wide Query Allowed",
+          "type": "boolean"
+        },
+        "maximum_list_calls": {
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Maximum List Calls",
+          "type": "integer"
+        },
+        "reason_code": {
+          "maxLength": 96,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+          "title": "Reason Code",
+          "type": "string"
+        }
+      },
+      "required": [
+        "decision",
+        "reason_code",
+        "maximum_list_calls"
+      ],
+      "title": "AccessPolicyExpectedVNext",
+      "type": "object"
+    },
+    "AccessPolicyInputVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "access_mode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Access Mode"
+        },
+        "allowed_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Allowed Label"
+        },
+        "gmail_query": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Gmail Query"
+        },
+        "label_directory_fixture_id": {
+          "maxLength": 96,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+          "title": "Label Directory Fixture Id",
+          "type": "string"
+        },
+        "max_messages_per_sync": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Max Messages Per Sync"
+        },
+        "max_pages": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Max Pages"
+        },
+        "oauth_scopes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Oauth Scopes",
+          "type": "array"
+        },
+        "page_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Size"
+        },
+        "provider_side_filter": {
+          "title": "Provider Side Filter",
+          "type": "boolean"
+        },
+        "resolved_label_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Resolved Label Id"
+        },
+        "time_window_days": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Time Window Days"
+        }
+      },
+      "required": [
+        "oauth_scopes",
+        "access_mode",
+        "allowed_label",
+        "resolved_label_id",
+        "label_directory_fixture_id",
+        "gmail_query",
+        "max_messages_per_sync",
+        "time_window_days",
+        "page_size",
+        "max_pages",
+        "provider_side_filter"
+      ],
+      "title": "AccessPolicyInputVNext",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "dataset_version": {
+      "const": "inbox2action-vnext-candidate-1",
+      "default": "inbox2action-vnext-candidate-1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "expected": {
+      "$ref": "#/$defs/AccessPolicyExpectedVNext"
+    },
+    "input": {
+      "$ref": "#/$defs/AccessPolicyInputVNext"
+    },
+    "private_pilot_account": {
+      "const": true,
+      "default": true,
+      "title": "Private Pilot Account",
+      "type": "boolean"
+    },
+    "scenario": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Scenario",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "synthetic_only": {
+      "const": true,
+      "default": true,
+      "title": "Synthetic Only",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "case_id",
+    "scenario",
+    "input",
+    "expected"
+  ],
+  "title": "GmailAccessPolicyCaseVNext",
+  "type": "object"
+}

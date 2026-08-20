@@ -1,0 +1,244 @@
+{
+  "$defs": {
+    "ContentPolicyExpectedVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "access_allowed": {
+          "title": "Access Allowed",
+          "type": "boolean"
+        },
+        "address_redaction_strategy": {
+          "const": "role_token",
+          "title": "Address Redaction Strategy",
+          "type": "string"
+        },
+        "attachment_ocr_allowed": {
+          "const": false,
+          "default": false,
+          "title": "Attachment Ocr Allowed",
+          "type": "boolean"
+        },
+        "attachments_sent_to_model": {
+          "const": false,
+          "default": false,
+          "title": "Attachments Sent To Model",
+          "type": "boolean"
+        },
+        "body_fetch_allowed": {
+          "title": "Body Fetch Allowed",
+          "type": "boolean"
+        },
+        "credentials_sent_to_model": {
+          "const": false,
+          "default": false,
+          "title": "Credentials Sent To Model",
+          "type": "boolean"
+        },
+        "excluded_categories": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Excluded Categories",
+          "type": "array"
+        },
+        "model_input": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MinimizedModelInputVNext"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "model_invocation_allowed": {
+          "title": "Model Invocation Allowed",
+          "type": "boolean"
+        },
+        "model_visible_fields": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Model Visible Fields",
+          "type": "array"
+        },
+        "normalization_actions": {
+          "items": {
+            "maxLength": 96,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+            "type": "string"
+          },
+          "title": "Normalization Actions",
+          "type": "array"
+        },
+        "raw_headers_sent_to_model": {
+          "const": false,
+          "default": false,
+          "title": "Raw Headers Sent To Model",
+          "type": "boolean"
+        },
+        "recipient_binding_source": {
+          "const": "trusted_application_context",
+          "title": "Recipient Binding Source",
+          "type": "string"
+        },
+        "redacted_values": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Redacted Values",
+          "type": "array"
+        },
+        "removed_fragments": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Removed Fragments",
+          "type": "array"
+        },
+        "sanitized_body": {
+          "anyOf": [
+            {
+              "maxLength": 8000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sanitized Body"
+        },
+        "sanitized_body_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sanitized Body Sha256"
+        },
+        "sanitized_subject": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sanitized Subject"
+        },
+        "verification_codes_sent_to_model": {
+          "const": false,
+          "default": false,
+          "title": "Verification Codes Sent To Model",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "access_allowed",
+        "body_fetch_allowed",
+        "model_invocation_allowed",
+        "model_visible_fields",
+        "normalization_actions",
+        "redacted_values",
+        "removed_fragments",
+        "excluded_categories",
+        "recipient_binding_source",
+        "address_redaction_strategy"
+      ],
+      "title": "ContentPolicyExpectedVNext",
+      "type": "object"
+    },
+    "MinimizedModelInputVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "sanitized_body": {
+          "maxLength": 8000,
+          "title": "Sanitized Body",
+          "type": "string"
+        },
+        "sanitized_subject": {
+          "maxLength": 200,
+          "title": "Sanitized Subject",
+          "type": "string"
+        },
+        "timezone": {
+          "const": "Asia/Shanghai",
+          "default": "Asia/Shanghai",
+          "title": "Timezone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sanitized_subject",
+        "sanitized_body"
+      ],
+      "title": "MinimizedModelInputVNext",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "dataset_version": {
+      "const": "inbox2action-vnext-candidate-1",
+      "default": "inbox2action-vnext-candidate-1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "expected": {
+      "$ref": "#/$defs/ContentPolicyExpectedVNext"
+    },
+    "message_fixture_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Message Fixture Id",
+      "type": "string"
+    },
+    "scenario": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Scenario",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "synthetic_only": {
+      "const": true,
+      "default": true,
+      "title": "Synthetic Only",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "case_id",
+    "message_fixture_id",
+    "scenario",
+    "expected"
+  ],
+  "title": "GmailContentPolicyCaseVNext",
+  "type": "object"
+}

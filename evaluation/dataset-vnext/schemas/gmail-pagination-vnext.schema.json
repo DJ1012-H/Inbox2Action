@@ -1,0 +1,143 @@
+{
+  "$defs": {
+    "PaginationExpectedVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "duplicate_ids_dropped": {
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Duplicate Ids Dropped",
+          "type": "integer"
+        },
+        "maximum_list_calls": {
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Maximum List Calls",
+          "type": "integer"
+        },
+        "processed_message_ids": {
+          "items": {
+            "maxLength": 96,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Processed Message Ids",
+          "type": "array"
+        },
+        "reason_code": {
+          "maxLength": 96,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "blocked"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "unbounded_history_scan": {
+          "const": false,
+          "default": false,
+          "title": "Unbounded History Scan",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "processed_message_ids",
+        "duplicate_ids_dropped",
+        "maximum_list_calls"
+      ],
+      "title": "PaginationExpectedVNext",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "dataset_version": {
+      "const": "inbox2action-vnext-candidate-1",
+      "default": "inbox2action-vnext-candidate-1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "dedupe_state_valid": {
+      "default": true,
+      "title": "Dedupe State Valid",
+      "type": "boolean"
+    },
+    "expected": {
+      "$ref": "#/$defs/PaginationExpectedVNext"
+    },
+    "list_response_fixture_ids": {
+      "items": {
+        "maxLength": 96,
+        "minLength": 3,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+        "type": "string"
+      },
+      "maxItems": 2,
+      "title": "List Response Fixture Ids",
+      "type": "array"
+    },
+    "prior_seen_message_ids": {
+      "items": {
+        "maxLength": 96,
+        "minLength": 3,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Prior Seen Message Ids",
+      "type": "array"
+    },
+    "scenario": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Scenario",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sync_strategy": {
+      "const": "bounded_messages_list",
+      "default": "bounded_messages_list",
+      "title": "Sync Strategy",
+      "type": "string"
+    },
+    "synthetic_only": {
+      "const": true,
+      "default": true,
+      "title": "Synthetic Only",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "case_id",
+    "scenario",
+    "prior_seen_message_ids",
+    "list_response_fixture_ids",
+    "expected"
+  ],
+  "title": "GmailPaginationCaseVNext",
+  "type": "object"
+}

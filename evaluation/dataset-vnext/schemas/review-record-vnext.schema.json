@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "CandidateReviewStatus": {
+      "enum": [
+        "draft",
+        "reviewed",
+        "approved",
+        "rejected"
+      ],
+      "title": "CandidateReviewStatus",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "dataset_version": {
+      "const": "inbox2action-vnext-candidate-1",
+      "default": "inbox2action-vnext-candidate-1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "notes": {
+      "maxLength": 2000,
+      "title": "Notes",
+      "type": "string"
+    },
+    "reviewed_at": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reviewed At"
+    },
+    "reviewer": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/CandidateReviewStatus",
+      "default": "draft"
+    }
+  },
+  "required": [
+    "case_id",
+    "reviewer",
+    "notes"
+  ],
+  "title": "CandidateReviewRecordVNext",
+  "type": "object"
+}

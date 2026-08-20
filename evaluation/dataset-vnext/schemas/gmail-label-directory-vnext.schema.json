@@ -1,0 +1,112 @@
+{
+  "$defs": {
+    "GmailLabelFixtureVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 96,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label_type": {
+          "enum": [
+            "system",
+            "user"
+          ],
+          "title": "Label Type",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 225,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "label_type"
+      ],
+      "title": "GmailLabelFixtureVNext",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "dataset_version": {
+      "const": "inbox2action-vnext-candidate-1",
+      "default": "inbox2action-vnext-candidate-1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "expected_label_id": {
+      "anyOf": [
+        {
+          "maxLength": 96,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expected Label Id"
+    },
+    "expected_resolution_status": {
+      "enum": [
+        "resolved",
+        "missing",
+        "ambiguous"
+      ],
+      "title": "Expected Resolution Status",
+      "type": "string"
+    },
+    "fixture_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Fixture Id",
+      "type": "string"
+    },
+    "labels": {
+      "items": {
+        "$ref": "#/$defs/GmailLabelFixtureVNext"
+      },
+      "title": "Labels",
+      "type": "array"
+    },
+    "scenario": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Scenario",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "synthetic_only": {
+      "const": true,
+      "default": true,
+      "title": "Synthetic Only",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "fixture_id",
+    "scenario",
+    "labels",
+    "expected_resolution_status"
+  ],
+  "title": "GmailLabelDirectoryFixtureVNext",
+  "type": "object"
+}

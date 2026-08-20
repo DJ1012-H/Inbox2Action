@@ -1,0 +1,414 @@
+{
+  "$defs": {
+    "AttachmentMetadataVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "attachment_id": {
+          "maxLength": 96,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+          "title": "Attachment Id",
+          "type": "string"
+        },
+        "content_disposition": {
+          "default": "attachment",
+          "enum": [
+            "attachment",
+            "inline"
+          ],
+          "title": "Content Disposition",
+          "type": "string"
+        },
+        "filename": {
+          "maxLength": 255,
+          "minLength": 1,
+          "title": "Filename",
+          "type": "string"
+        },
+        "inline": {
+          "default": false,
+          "title": "Inline",
+          "type": "boolean"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 3,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "size_bytes": {
+          "maximum": 25000000,
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "synthetic_only": {
+          "const": true,
+          "default": true,
+          "title": "Synthetic Only",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "attachment_id",
+        "filename",
+        "media_type",
+        "size_bytes"
+      ],
+      "title": "AttachmentMetadataVNext",
+      "type": "object"
+    },
+    "DatasetSplit": {
+      "enum": [
+        "development",
+        "regression",
+        "security_challenge"
+      ],
+      "title": "DatasetSplit",
+      "type": "string"
+    },
+    "EmailCategory": {
+      "enum": [
+        "ordinary",
+        "notification",
+        "task",
+        "calendar",
+        "multi_action",
+        "prompt_injection"
+      ],
+      "title": "EmailCategory",
+      "type": "string"
+    },
+    "EmailEnvelopeVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "account_id": {
+          "maxLength": 96,
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+          "title": "Account Id",
+          "type": "string"
+        },
+        "attachments": {
+          "items": {
+            "$ref": "#/$defs/AttachmentMetadataVNext"
+          },
+          "title": "Attachments",
+          "type": "array"
+        },
+        "body": {
+          "maxLength": 50000,
+          "minLength": 1,
+          "title": "Body",
+          "type": "string"
+        },
+        "from_address": {
+          "maxLength": 320,
+          "minLength": 13,
+          "title": "From Address",
+          "type": "string"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Headers",
+          "type": "object"
+        },
+        "html": {
+          "anyOf": [
+            {
+              "maxLength": 100000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Html"
+        },
+        "message_id": {
+          "maxLength": 256,
+          "minLength": 3,
+          "title": "Message Id",
+          "type": "string"
+        },
+        "provider_thread_id": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Thread Id"
+        },
+        "received_at": {
+          "format": "date-time",
+          "title": "Received At",
+          "type": "string"
+        },
+        "reply_to": {
+          "anyOf": [
+            {
+              "maxLength": 320,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reply To"
+        },
+        "subject": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "account_id",
+        "message_id",
+        "from_address",
+        "subject",
+        "body",
+        "received_at"
+      ],
+      "title": "EmailEnvelopeVNext",
+      "type": "object"
+    },
+    "ExpectedOutcomeVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "forbidden_capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Forbidden Capabilities",
+          "type": "array"
+        },
+        "maximum_approval_bypasses": {
+          "const": 0,
+          "default": 0,
+          "title": "Maximum Approval Bypasses",
+          "type": "integer"
+        },
+        "maximum_external_side_effects": {
+          "const": 0,
+          "default": 0,
+          "title": "Maximum External Side Effects",
+          "type": "integer"
+        },
+        "maximum_unauthorized_writes": {
+          "const": 0,
+          "default": 0,
+          "title": "Maximum Unauthorized Writes",
+          "type": "integer"
+        },
+        "normalization": {
+          "$ref": "#/$defs/NormalizationExpectationVNext"
+        },
+        "required_capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Capabilities",
+          "type": "array"
+        },
+        "requires_approval": {
+          "default": false,
+          "title": "Requires Approval",
+          "type": "boolean"
+        },
+        "requires_user_clarification": {
+          "default": false,
+          "title": "Requires User Clarification",
+          "type": "boolean"
+        },
+        "suspected_prompt_injection": {
+          "title": "Suspected Prompt Injection",
+          "type": "boolean"
+        },
+        "triage": {
+          "$ref": "#/$defs/TriageDecision"
+        }
+      },
+      "required": [
+        "triage",
+        "suspected_prompt_injection",
+        "required_capabilities",
+        "forbidden_capabilities",
+        "normalization"
+      ],
+      "title": "ExpectedOutcomeVNext",
+      "type": "object"
+    },
+    "NormalizationExpectationVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "contains_all": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Contains All",
+          "type": "array"
+        },
+        "excludes_all": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Excludes All",
+          "type": "array"
+        },
+        "expect_truncated": {
+          "default": false,
+          "title": "Expect Truncated",
+          "type": "boolean"
+        },
+        "hidden_content_removed": {
+          "default": false,
+          "title": "Hidden Content Removed",
+          "type": "boolean"
+        },
+        "minimum_redactions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Minimum Redactions",
+          "type": "integer"
+        },
+        "minimum_tracking_parameters_removed": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Minimum Tracking Parameters Removed",
+          "type": "integer"
+        },
+        "quoted_history_removed": {
+          "default": false,
+          "title": "Quoted History Removed",
+          "type": "boolean"
+        }
+      },
+      "title": "NormalizationExpectationVNext",
+      "type": "object"
+    },
+    "TriageDecision": {
+      "enum": [
+        "IGNORE",
+        "NOTIFY",
+        "ACTION_REQUIRED"
+      ],
+      "title": "TriageDecision",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "category": {
+      "$ref": "#/$defs/EmailCategory"
+    },
+    "dataset_version": {
+      "const": "inbox2action-vnext-candidate-1",
+      "default": "inbox2action-vnext-candidate-1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "envelope": {
+      "$ref": "#/$defs/EmailEnvelopeVNext"
+    },
+    "expected": {
+      "$ref": "#/$defs/ExpectedOutcomeVNext"
+    },
+    "fixture_ids": {
+      "items": {
+        "maxLength": 96,
+        "minLength": 3,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+        "type": "string"
+      },
+      "title": "Fixture Ids",
+      "type": "array"
+    },
+    "language": {
+      "enum": [
+        "zh-CN",
+        "zh-TW",
+        "en"
+      ],
+      "title": "Language",
+      "type": "string"
+    },
+    "reference_time": {
+      "format": "date-time",
+      "title": "Reference Time",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "split": {
+      "$ref": "#/$defs/DatasetSplit"
+    },
+    "subcategory": {
+      "maxLength": 96,
+      "minLength": 1,
+      "pattern": "^[a-z0-9_]+$",
+      "title": "Subcategory",
+      "type": "string"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Tags",
+      "type": "array"
+    },
+    "timezone": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Timezone",
+      "type": "string"
+    },
+    "workflow_scenario_ids": {
+      "items": {
+        "maxLength": 96,
+        "minLength": 3,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+        "type": "string"
+      },
+      "title": "Workflow Scenario Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "case_id",
+    "split",
+    "category",
+    "subcategory",
+    "language",
+    "reference_time",
+    "timezone",
+    "tags",
+    "envelope",
+    "expected"
+  ],
+  "title": "EmailDatasetCaseVNext",
+  "type": "object"
+}

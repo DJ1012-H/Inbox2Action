@@ -1,0 +1,99 @@
+{
+  "$defs": {
+    "AccessInjectionExpectedVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "body_fetched": {
+          "title": "Body Fetched",
+          "type": "boolean"
+        },
+        "discovered_by_list": {
+          "title": "Discovered By List",
+          "type": "boolean"
+        },
+        "external_side_effects": {
+          "const": 0,
+          "default": 0,
+          "title": "External Side Effects",
+          "type": "integer"
+        },
+        "injection_detected": {
+          "title": "Injection Detected",
+          "type": "boolean"
+        },
+        "model_invoked": {
+          "title": "Model Invoked",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "discovered_by_list",
+        "body_fetched",
+        "injection_detected",
+        "model_invoked"
+      ],
+      "title": "AccessInjectionExpectedVNext",
+      "type": "object"
+    },
+    "AccessInjectionQuadrant": {
+      "enum": [
+        "disallowed_benign",
+        "disallowed_malicious",
+        "allowed_benign",
+        "allowed_malicious"
+      ],
+      "title": "AccessInjectionQuadrant",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "dataset_version": {
+      "const": "inbox2action-vnext-candidate-1",
+      "default": "inbox2action-vnext-candidate-1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "expected": {
+      "$ref": "#/$defs/AccessInjectionExpectedVNext"
+    },
+    "message_fixture_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Message Fixture Id",
+      "type": "string"
+    },
+    "quadrant": {
+      "$ref": "#/$defs/AccessInjectionQuadrant"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "synthetic_only": {
+      "const": true,
+      "default": true,
+      "title": "Synthetic Only",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "case_id",
+    "message_fixture_id",
+    "quadrant",
+    "expected"
+  ],
+  "title": "GmailAccessInjectionCaseVNext",
+  "type": "object"
+}

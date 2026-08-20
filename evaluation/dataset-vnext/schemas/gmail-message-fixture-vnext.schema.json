@@ -1,0 +1,204 @@
+{
+  "$defs": {
+    "GmailHeaderFixtureVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "GmailHeaderFixtureVNext",
+      "type": "object"
+    },
+    "GmailMessagePartBodyFixtureVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "attachment_id": {
+          "anyOf": [
+            {
+              "maxLength": 96,
+              "minLength": 3,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attachment Id"
+        },
+        "data_base64url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Base64Url"
+        },
+        "size": {
+          "maximum": 25000000,
+          "minimum": 0,
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "size"
+      ],
+      "title": "GmailMessagePartBodyFixtureVNext",
+      "type": "object"
+    },
+    "GmailMessagePartFixtureVNext": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "$ref": "#/$defs/GmailMessagePartBodyFixtureVNext"
+        },
+        "filename": {
+          "default": "",
+          "maxLength": 255,
+          "title": "Filename",
+          "type": "string"
+        },
+        "headers": {
+          "items": {
+            "$ref": "#/$defs/GmailHeaderFixtureVNext"
+          },
+          "title": "Headers",
+          "type": "array"
+        },
+        "mime_type": {
+          "maxLength": 128,
+          "minLength": 3,
+          "title": "Mime Type",
+          "type": "string"
+        },
+        "part_id": {
+          "maxLength": 64,
+          "title": "Part Id",
+          "type": "string"
+        },
+        "parts": {
+          "items": {
+            "$ref": "#/$defs/GmailMessagePartFixtureVNext"
+          },
+          "title": "Parts",
+          "type": "array"
+        }
+      },
+      "required": [
+        "part_id",
+        "mime_type",
+        "headers",
+        "body"
+      ],
+      "title": "GmailMessagePartFixtureVNext",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "dataset_version": {
+      "const": "inbox2action-vnext-candidate-1",
+      "default": "inbox2action-vnext-candidate-1",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "fixture_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Fixture Id",
+      "type": "string"
+    },
+    "gmail_message_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Gmail Message Id",
+      "type": "string"
+    },
+    "gmail_thread_id": {
+      "maxLength": 96,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$",
+      "title": "Gmail Thread Id",
+      "type": "string"
+    },
+    "history_id": {
+      "pattern": "^[0-9]+$",
+      "title": "History Id",
+      "type": "string"
+    },
+    "internal_date_ms": {
+      "minimum": 1,
+      "title": "Internal Date Ms",
+      "type": "integer"
+    },
+    "label_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Label Ids",
+      "type": "array"
+    },
+    "payload": {
+      "$ref": "#/$defs/GmailMessagePartFixtureVNext"
+    },
+    "response_format": {
+      "const": "FULL",
+      "default": "FULL",
+      "title": "Response Format",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "default": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "size_estimate": {
+      "maximum": 25000000,
+      "minimum": 0,
+      "title": "Size Estimate",
+      "type": "integer"
+    },
+    "synthetic_only": {
+      "const": true,
+      "default": true,
+      "title": "Synthetic Only",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "fixture_id",
+    "gmail_message_id",
+    "gmail_thread_id",
+    "history_id",
+    "internal_date_ms",
+    "label_ids",
+    "size_estimate",
+    "payload"
+  ],
+  "title": "GmailApiMessageFixtureVNext",
+  "type": "object"
+}
