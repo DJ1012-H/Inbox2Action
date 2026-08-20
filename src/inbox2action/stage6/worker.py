@@ -69,9 +69,7 @@ class GmailWorkflowWorker:
                 received_at=summary.date or None,
             )
             if not reserved:
-                recovered = await self._recover_duplicate(
-                    summary.message_id, thread_id
-                )
+                recovered = await self._recover_duplicate(summary.message_id, thread_id)
                 if recovered is not None:
                     results.append(recovered)
                     continue
@@ -91,7 +89,11 @@ class GmailWorkflowWorker:
                     thread_id=summary.thread_id,
                 )
                 envelope = gmail_message_to_envelope(message, account_id=account_id)
-                planning = self._planner.plan(envelope)
+                plan_with_memory = getattr(self._planner, "plan_with_memory", None)
+                if callable(plan_with_memory):
+                    planning = await plan_with_memory(envelope)
+                else:
+                    planning = self._planner.plan(envelope)
                 state = prepare_workflow_state(envelope, planning)
                 output = await self._graph.ainvoke(
                     workflow_state_to_graph(state),

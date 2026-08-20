@@ -8,6 +8,8 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.store.base import BaseStore
 from langgraph.types import interrupt
 
+from inbox2action.memory.contracts import UserEditDiff
+from inbox2action.memory.service import MemoryService
 from inbox2action.stage3.contracts import (
     ActionProposal,
     ActionStatus,
@@ -106,7 +108,10 @@ def _route_after_start(
         return "select_next_action"
     if state.status is Stage3WorkflowStatus.EXECUTION_CLAIMED:
         return "execute_write"
-    if state.status is Stage3WorkflowStatus.UNKNOWN and state.current_action_id is not None:
+    if (
+        state.status is Stage3WorkflowStatus.UNKNOWN
+        and state.current_action_id is not None
+    ):
         return "reconcile_unknown"
     return "finalize"
 
@@ -188,7 +193,9 @@ def _select_next_action_node(
             state,
             event_type="workflow_terminal",
             status=status.value,
-            error_code=("dependency_blocked" if status is Stage3WorkflowStatus.FAILED else None),
+            error_code=(
+                "dependency_blocked" if status is Stage3WorkflowStatus.FAILED else None
+            ),
         ),
     }
 
@@ -209,9 +216,12 @@ def _route_after_select(
     return "finalize"
 
 
-def _approval_interrupt_node(
+async def _approval_interrupt_node(
     graph_state: EmailActionGraphState,
+    config: RunnableConfig,
+    memory_service: MemoryService | None = None,
 ) -> EmailActionGraphState:
+    del config
     state = _state(graph_state)
     action_id = state.current_action_id
     if action_id is None:
@@ -257,6 +267,20 @@ def _approval_interrupt_node(
         )
         workflow_status = Stage3WorkflowStatus.WAITING_FOR_APPROVAL
         event_status = "clarified" if decision.decision == "clarify" else "edited"
+        memory_outcome = None
+        if memory_service is not None:
+            diff = UserEditDiff.from_action_edit(
+                thread_id=state.thread_id,
+                action_id=action_id,
+                approval_revision=approval.revision,
+                before_parameters=action.proposal.parameters,
+                after_parameters=edited.parameters,
+                tool_name=action.proposal.tool_name,
+            )
+            memory_outcome, _ = await memory_service.apply_user_edit(
+                state.normalized_email.account_id,
+                diff,
+            )
     elif decision.decision == "reject":
         replacement = action.model_copy(
             update={
@@ -271,6 +295,7 @@ def _approval_interrupt_node(
         )
         workflow_status = Stage3WorkflowStatus.REJECTED
         event_status = "rejected"
+        memory_outcome = None
     else:
         current_digest = payload_hash(action.proposal)
         if current_digest != approval.payload_hash:
@@ -289,20 +314,31 @@ def _approval_interrupt_node(
         )
         workflow_status = Stage3WorkflowStatus.APPROVED
         event_status = "approved"
+        memory_outcome = None
 
+    audit = _audit(
+        state,
+        event_type="approval_decided",
+        status=event_status,
+        action_id=action_id,
+        payload_hash_value=payload_hash(replacement.proposal),
+    )
+    if memory_outcome is not None:
+        audit = _audit(
+            state.model_copy(
+                update={"audit": [AuditEvent.model_validate(item) for item in audit]}
+            ),
+            event_type="memory_update",
+            status=memory_outcome.value,
+            action_id=action_id,
+        )
     return {
         "actions": [
             item.model_dump(mode="json")
             for item in replace_workflow_action(state, replacement)
         ],
         "status": workflow_status.value,
-        "audit": _audit(
-            state,
-            event_type="approval_decided",
-            status=event_status,
-            action_id=action_id,
-            payload_hash_value=payload_hash(replacement.proposal),
-        ),
+        "audit": audit,
     }
 
 
@@ -351,10 +387,20 @@ def build_email_action_graph(
     execution_ledger: ExecutionLedger | None = None,
     write_executor: WriteExecutor | None = None,
     reconciliation_executor: ReconciliationExecutor | None = None,
+    memory_service: MemoryService | None = None,
 ):
     """Compile the single-source EmailActionAgent workflow."""
 
     ledger = execution_ledger or InMemoryExecutionLedger()
+    durable_memory = memory_service or (
+        MemoryService(store) if store is not None else None
+    )
+
+    async def approval_interrupt_node(
+        graph_state: EmailActionGraphState,
+        config: RunnableConfig,
+    ) -> EmailActionGraphState:
+        return await _approval_interrupt_node(graph_state, config, durable_memory)
 
     async def recover_execution_result(
         state: WorkflowState,
@@ -596,7 +642,9 @@ def build_email_action_graph(
                         "result": result,
                     }
                 )
-                completed = list(dict.fromkeys([*state.completed_action_ids, action_id]))
+                completed = list(
+                    dict.fromkeys([*state.completed_action_ids, action_id])
+                )
                 update = _mark_action(
                     state,
                     replacement,
@@ -667,7 +715,7 @@ def build_email_action_graph(
     )
     builder.add_node(
         "approval_interrupt",
-        cast(Any, _approval_interrupt_node),
+        cast(Any, approval_interrupt_node),
         input_schema=node_input,
     )
     builder.add_node(

@@ -20,6 +20,7 @@ from inbox2action.evaluation.triage_final import (
 )
 from inbox2action.llm.models import ChatCompletionResult
 from inbox2action.llm.protocols import ChatClientPort
+from inbox2action.memory.service import MemoryService
 from inbox2action.stage3.contracts import (
     ActionProposal,
     EmailEnvelope,
@@ -56,6 +57,7 @@ class GmailStage2Planner:
         *,
         timezone: str = "Asia/Shanghai",
         user_context: Mapping[str, object] | None = None,
+        memory_service: MemoryService | None = None,
     ) -> None:
         try:
             ZoneInfo(timezone)
@@ -64,8 +66,29 @@ class GmailStage2Planner:
         self._model = model
         self._timezone = timezone
         self._user_context = dict(user_context or {})
+        self._memory_service = memory_service
 
     def plan(self, envelope: EmailEnvelope) -> Stage2PlanningBundle:
+        return self._plan(envelope, user_context=self._user_context)
+
+    async def plan_with_memory(self, envelope: EmailEnvelope) -> Stage2PlanningBundle:
+        """Load bounded preferences before the existing planner decision."""
+
+        if self._memory_service is None:
+            return self.plan(envelope)
+        context = await self._memory_service.load_context(envelope.account_id)
+        user_context = {
+            **self._user_context,
+            "LONG_TERM_SOFT_PREFERENCES": context.to_prompt_context(),
+        }
+        return self._plan(envelope, user_context=user_context)
+
+    def _plan(
+        self,
+        envelope: EmailEnvelope,
+        *,
+        user_context: Mapping[str, object],
+    ) -> Stage2PlanningBundle:
         normalized = normalize_email(envelope)
         email_payload = normalized.model_dump(mode="json")
         current_time = datetime.now(ZoneInfo(self._timezone)).isoformat()
@@ -75,7 +98,7 @@ class GmailStage2Planner:
                     current_time=current_time,
                     timezone=self._timezone,
                     email=email_payload,
-                    user_context=self._user_context,
+                    user_context=dict(user_context),
                 ),
                 response_format={"type": "json_object"},
             )
@@ -107,14 +130,16 @@ class GmailStage2Planner:
                     current_time=current_time,
                     timezone=self._timezone,
                     email=email_payload,
-                    user_context=self._user_context,
+                    user_context=dict(user_context),
                     triage=enforced,
                     action_plan=candidate_plan,
                 ),
                 registry,
             )
             if len(response.tool_calls) != 1:
-                raise Stage6PlanningError("planner must return exactly one proposal Tool")
+                raise Stage6PlanningError(
+                    "planner must return exactly one proposal Tool"
+                )
             validated = registry.validate_call(response.tool_calls[0])
         except Stage6PlanningError:
             raise
@@ -176,10 +201,7 @@ def _should_retry_proposal_cardinality(response: ChatCompletionResult) -> bool:
     tool_calls = response.tool_calls
     if len(tool_calls) == 1:
         return False
-    return all(
-        tool_call.name in _PROPOSAL_TOOLS
-        for tool_call in tool_calls
-    )
+    return all(tool_call.name in _PROPOSAL_TOOLS for tool_call in tool_calls)
 
 
 def _candidate_plan() -> ActionPlanV3:

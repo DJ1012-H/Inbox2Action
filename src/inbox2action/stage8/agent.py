@@ -18,6 +18,7 @@ from inbox2action.evaluation.triage_final import (
 )
 from inbox2action.llm.models import ChatCompletionResult
 from inbox2action.llm.protocols import ChatClientPort
+from inbox2action.memory.service import MemoryService
 from inbox2action.stage3.contracts import (
     ActionProposal,
     EmailEnvelope,
@@ -96,7 +97,26 @@ class CalendarActionAgent:
     ) -> None:
         self._authorized_intervals = tuple(intervals)
 
-    def run(self, email: dict[str, object], *, current_time: str) -> ToolLoopResult:
+    def run(
+        self,
+        email: dict[str, object],
+        *,
+        current_time: str,
+        preference_context: Mapping[str, object] | None = None,
+    ) -> ToolLoopResult:
+        return self._run(
+            email,
+            current_time=current_time,
+            preference_context=preference_context or {},
+        )
+
+    def _run(
+        self,
+        email: dict[str, object],
+        *,
+        current_time: str,
+        preference_context: Mapping[str, object],
+    ) -> ToolLoopResult:
         if self._authorized_intervals:
             self._runtime.set_authorized_intervals(self._authorized_intervals)
         registry = ToolRegistry(
@@ -118,11 +138,11 @@ class CalendarActionAgent:
                 current_time=current_time,
                 timezone=self._timezone,
                 authorized_intervals=self._authorized_intervals,
+                preference_context=preference_context,
             )
         )
         if result.calendar_proposals and not any(
-            entry.tool_name == "check_calendar_availability"
-            and entry.status == "ok"
+            entry.tool_name == "check_calendar_availability" and entry.status == "ok"
             for entry in result.trace
         ):
             raise Stage6PlanningError("calendar_proposal_without_free_observation")
@@ -145,6 +165,7 @@ class CalendarStage8Planner:
         timezone: str = "Asia/Shanghai",
         max_tool_steps: int = 6,
         authorized_intervals: Sequence[tuple[datetime, datetime]] = (),
+        memory_service: MemoryService | None = None,
     ) -> None:
         try:
             ZoneInfo(timezone)
@@ -154,6 +175,7 @@ class CalendarStage8Planner:
         self._runtime = runtime
         self._timezone = timezone
         self._authorized_intervals = tuple(authorized_intervals)
+        self._memory_service = memory_service
         self._agent = CalendarActionAgent(
             model,
             runtime,
@@ -164,6 +186,32 @@ class CalendarStage8Planner:
         self.last_trace: tuple[ToolTraceEntry, ...] = ()
 
     def plan(self, envelope: EmailEnvelope) -> Stage2PlanningBundle:
+        return self._plan(
+            envelope,
+            user_context={},
+            preference_context={},
+        )
+
+    async def plan_with_memory(self, envelope: EmailEnvelope) -> Stage2PlanningBundle:
+        """Load bounded preferences before the Calendar planner decision."""
+
+        if self._memory_service is None:
+            return self.plan(envelope)
+        context = await self._memory_service.load_context(envelope.account_id)
+        prompt_context = context.to_prompt_context()
+        return self._plan(
+            envelope,
+            user_context={"LONG_TERM_SOFT_PREFERENCES": prompt_context},
+            preference_context=prompt_context,
+        )
+
+    def _plan(
+        self,
+        envelope: EmailEnvelope,
+        *,
+        user_context: Mapping[str, object],
+        preference_context: Mapping[str, object],
+    ) -> Stage2PlanningBundle:
         normalized = normalize_email(envelope)
         email_payload = normalized.model_dump(mode="json")
         current_time = datetime.now(ZoneInfo(self._timezone)).isoformat()
@@ -173,7 +221,7 @@ class CalendarStage8Planner:
                     current_time=current_time,
                     timezone=self._timezone,
                     email=email_payload,
-                    user_context={},
+                    user_context=dict(user_context),
                 ),
                 response_format={"type": "json_object"},
             )
@@ -191,18 +239,28 @@ class CalendarStage8Planner:
             detection=detection,
             policy_has_actions=False,
         ).enforced
-        if triage.decision.value != "ACTION_REQUIRED" or not triage.safe_to_plan_actions:
+        if (
+            triage.decision.value != "ACTION_REQUIRED"
+            or not triage.safe_to_plan_actions
+        ):
             return Stage2PlanningBundle(triage=triage)
 
-        authorized_intervals = self._authorized_intervals or extract_authorized_intervals(
-            normalized.sanitized_body,
-            current_time=current_time,
-            timezone=self._timezone,
+        authorized_intervals = (
+            self._authorized_intervals
+            or extract_authorized_intervals(
+                normalized.sanitized_body,
+                current_time=current_time,
+                timezone=self._timezone,
+            )
         )
         self._runtime.set_authorized_intervals(authorized_intervals)
         self._agent.set_authorized_intervals(authorized_intervals)
         try:
-            loop_result = self._agent.run(email_payload, current_time=current_time)
+            loop_result = self._agent.run(
+                email_payload,
+                current_time=current_time,
+                preference_context=preference_context,
+            )
         except Stage6PlanningError:
             raise
         except Exception as exc:
@@ -259,6 +317,7 @@ def build_calendar_agent_messages(
     current_time: str,
     timezone: str,
     authorized_intervals: Sequence[tuple[datetime, datetime]] = (),
+    preference_context: Mapping[str, object] | None = None,
 ) -> list[dict[str, object]]:
     """Prompt the model to consume observations and use only authorized times."""
 
@@ -292,6 +351,7 @@ does not create a Google event.
             "current_time": current_time,
             "timezone": timezone,
             "authorized_intervals": interval_payload,
+            "LONG_TERM_SOFT_PREFERENCES": dict(preference_context or {}),
         },
         "AVAILABLE TOOLS": [
             "check_calendar_availability",

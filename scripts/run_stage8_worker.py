@@ -22,6 +22,7 @@ from inbox2action.gmail import (
     GoogleOAuthCredentialProvider,
 )
 from inbox2action.llm import OpenAIChatClient
+from inbox2action.memory import MemoryService
 from inbox2action.stage3 import build_email_action_graph
 from inbox2action.stage4 import open_langgraph_postgres, upgrade_database
 from inbox2action.stage6 import GmailWorkflowWorker, PostgresWorkflowIndex
@@ -65,12 +66,6 @@ async def run_once(args: argparse.Namespace) -> int:
         timezone=settings.business_timezone,
     )
     runtime = CalendarToolRuntime(adapter, timezone=settings.business_timezone)
-    planner = CalendarStage8Planner(
-        OpenAIChatClient(settings),
-        runtime,
-        timezone=settings.business_timezone,
-        max_tool_steps=settings.llm_max_tool_steps,
-    )
     executor = GoogleCalendarWriteExecutor(
         client,
         calendar_id=settings.google_calendar_id,
@@ -82,6 +77,13 @@ async def run_once(args: argparse.Namespace) -> int:
     try:
         transport = GmailReadonlyTransport(credentials)
         async with open_langgraph_postgres(database_url) as postgres:
+            planner = CalendarStage8Planner(
+                OpenAIChatClient(settings),
+                runtime,
+                timezone=settings.business_timezone,
+                max_tool_steps=settings.llm_max_tool_steps,
+                memory_service=MemoryService(postgres.store),
+            )
             graph = build_email_action_graph(
                 checkpointer=postgres.checkpointer,
                 store=postgres.store,
