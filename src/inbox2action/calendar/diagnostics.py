@@ -99,13 +99,17 @@ def diagnostic_bundle(
     insert_attempt: InsertAttemptDiagnostic | None,
     reconciliation: ReconciliationDiagnostic | None,
 ) -> dict[str, object]:
+    if reconciliation is None:
+        reconciliation = ReconciliationDiagnostic(
+            get_attempt_count=0,
+            attempts=(),
+            final_outcome=ReconciliationOutcome.NOT_ATTEMPTED,
+        )
     return {
         "insert_attempt": (
             insert_attempt.as_dict() if insert_attempt is not None else None
         ),
-        "reconciliation": (
-            reconciliation.as_dict() if reconciliation is not None else None
-        ),
+        "reconciliation": reconciliation.as_dict(),
     }
 
 

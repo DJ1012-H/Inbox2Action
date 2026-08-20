@@ -72,7 +72,11 @@ async def test_google_calendar_resource_survives_ledger_reopen_without_rewrite()
                 "outcome_class": "SUCCESS_RESPONSE",
                 "response_received": True,
             },
-            "reconciliation": None,
+            "reconciliation": {
+                "get_attempt_count": 0,
+                "attempts": [],
+                "final_outcome": "not_attempted",
+            },
         },
     )
     provider_insert_count = 1
