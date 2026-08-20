@@ -21,6 +21,7 @@ from inbox2action.memory.contracts import (
     TaskPreferences,
     TriagePreferences,
     UserEditDiff,
+    memory_namespace,
     memory_owner_id,
 )
 
@@ -58,8 +59,10 @@ class MemoryService:
         self._store = store
 
     @staticmethod
-    def namespace(owner_id: str, category: MemoryCategory) -> tuple[str, str]:
-        return (memory_owner_id(owner_id), category.value)
+    def namespace(owner_id: str, category: MemoryCategory) -> tuple[str, str, str]:
+        """Use the centralized account-to-namespace mapping for every operation."""
+
+        return memory_namespace(owner_id, category)
 
     async def load(self, owner_id: str, category: MemoryCategory) -> MemoryDocument:
         owner = memory_owner_id(owner_id)

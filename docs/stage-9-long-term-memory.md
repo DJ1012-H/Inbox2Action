@@ -8,8 +8,16 @@ categories:
 - `task_preferences`
 - `calendar_preferences`
 
-The owner is the normalized trusted Gmail account identity. The Store namespace
-is `(account_id, category)`, and the backend is the existing
+The owner is the normalized trusted Gmail account identity. The business owner
+identity is retained as the normalized account ID, but it never enters a
+LangGraph namespace label. The single namespace helper produces:
+
+```text
+("memory", "acct-" + sha256(normalized_account_id).hexdigest(), category)
+```
+
+The resulting owner label is fixed-length, namespace-safe, deterministic across
+process restarts, and preserves account isolation. The backend is the existing
 `AsyncPostgresStore`; no second memory database or business Alembic migration is
 introduced. `AsyncPostgresStore.setup()` remains part of the existing Stage 4
 runtime initialization.

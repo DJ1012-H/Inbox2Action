@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+
 import pytest
 from pydantic import ValidationError
 
@@ -10,7 +12,9 @@ from inbox2action.memory import (
     ReplyPreferences,
     TaskPreferences,
     UserEditDiff,
+    memory_namespace,
     memory_owner_id,
+    memory_owner_key,
 )
 
 
@@ -78,7 +82,18 @@ def test_memory_documents_reject_provider_targets_and_timezone() -> None:
 
 
 def test_owner_namespace_identity_is_normalized_but_not_replaced() -> None:
-    assert memory_owner_id(" Alice@Example.TEST ") == "alice@example.test"
+    owner = " Alice@Example.TEST "
+    assert memory_owner_id(owner) == "alice@example.test"
+    assert memory_owner_key(owner) == (
+        "acct-" + hashlib.sha256(b"alice@example.test").hexdigest()
+    )
+    namespace = memory_namespace(owner, MemoryCategory.TASK)
+    assert namespace == (
+        "memory",
+        "acct-" + hashlib.sha256(b"alice@example.test").hexdigest(),
+        "task_preferences",
+    )
+    assert all("." not in label for label in namespace)
     assert ReplyPreferences().model_dump(mode="json") == {
         "language": None,
         "formality": None,
@@ -86,4 +101,18 @@ def test_owner_namespace_identity_is_normalized_but_not_replaced() -> None:
         "opening_style": None,
         "closing_style": None,
         "expression_patterns": [],
+    }
+
+
+def test_namespace_key_is_stable_isolated_and_category_scoped() -> None:
+    email_owner = "stage9-memory@example.test"
+    assert memory_owner_key(email_owner) == memory_owner_key(email_owner)
+    assert memory_owner_key("a.b@example.test") != memory_owner_key("a_b@example.test")
+    namespaces = {
+        memory_namespace(email_owner, category) for category in MemoryCategory
+    }
+    assert len(namespaces) == 4
+    assert {namespace[1] for namespace in namespaces} == {memory_owner_key(email_owner)}
+    assert {namespace[2] for namespace in namespaces} == {
+        category.value for category in MemoryCategory
     }

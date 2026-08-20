@@ -393,7 +393,7 @@ class MemoryEvidence(BaseModel):
 
 
 def memory_owner_id(account_id: str) -> str:
-    """Normalize the trusted provider account identity for namespace binding."""
+    """Normalize the trusted provider account identity for memory ownership."""
 
     normalized = account_id.strip().casefold()
     if (
@@ -403,6 +403,22 @@ def memory_owner_id(account_id: str) -> str:
     ):
         raise ValueError("account_id is not a valid memory owner")
     return normalized
+
+
+def memory_owner_key(account_id: str) -> str:
+    """Map one trusted account identity to a stable namespace-safe label."""
+
+    owner = memory_owner_id(account_id)
+    digest = hashlib.sha256(owner.encode("utf-8")).hexdigest()
+    return f"acct-{digest}"
+
+
+def memory_namespace(
+    account_id: str, category: MemoryCategory
+) -> tuple[str, str, str]:
+    """Return the sole LangGraph namespace contract for Stage 9 memory."""
+
+    return ("memory", memory_owner_key(account_id), category.value)
 
 
 def _category_for_tool(tool_name: str) -> MemoryCategory:

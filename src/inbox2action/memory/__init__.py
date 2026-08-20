@@ -11,7 +11,9 @@ from inbox2action.memory.contracts import (
     TaskPreferences,
     TriagePreferences,
     UserEditDiff,
+    memory_namespace,
     memory_owner_id,
+    memory_owner_key,
 )
 from inbox2action.memory.service import MemoryService
 
@@ -27,5 +29,7 @@ __all__ = [
     "TaskPreferences",
     "TriagePreferences",
     "UserEditDiff",
+    "memory_namespace",
     "memory_owner_id",
+    "memory_owner_key",
 ]

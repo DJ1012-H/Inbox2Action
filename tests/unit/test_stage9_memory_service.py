@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.store.memory import InMemoryStore
 from langgraph.types import Command
 
 from inbox2action.evaluation.policy_v3 import (
@@ -88,14 +89,15 @@ async def test_update_is_idempotent_across_service_reopen_and_versioned() -> Non
     first = MemoryService(store)
     diff = _task_diff()
 
-    outcome, document = await first.apply_user_edit("A@example.test", diff)
+    owner = "stage9-memory@example.test"
+    outcome, document = await first.apply_user_edit(owner, diff)
     assert outcome is MemoryUpdateOutcome.APPLIED
     assert document.version == 1
     assert document.typed_preferences().default_priority == "high"
 
     reopened = MemoryService(store)
     duplicate, duplicate_document = await reopened.apply_user_edit(
-        "a@example.test", diff
+        owner, diff
     )
     assert duplicate is MemoryUpdateOutcome.ALREADY_APPLIED
     assert duplicate_document.version == 1
@@ -110,10 +112,32 @@ async def test_update_is_idempotent_across_service_reopen_and_versioned() -> Non
         after={"priority": "medium"},
     )
     no_op_outcome, no_op_document = await reopened.apply_user_edit(
-        "a@example.test", no_op
+        owner, no_op
     )
     assert no_op_outcome is MemoryUpdateOutcome.NO_OP
     assert no_op_document.version == 1
+
+
+@pytest.mark.asyncio
+async def test_real_langgraph_inmemory_store_accepts_email_like_owner_namespace() -> None:
+    store = InMemoryStore()
+    service = MemoryService(store)
+    diff = _task_diff()
+
+    applied, document = await service.apply_user_edit(
+        "stage9-memory@example.test", diff
+    )
+    replayed, replayed_document = await MemoryService(store).apply_user_edit(
+        "stage9-memory@example.test", diff
+    )
+
+    assert applied is MemoryUpdateOutcome.APPLIED
+    assert document.version == 1
+    assert replayed is MemoryUpdateOutcome.ALREADY_APPLIED
+    assert replayed_document.version == 1
+    assert (
+        await service.load("stage9-memory@example.test", MemoryCategory.TASK)
+    ).typed_preferences().default_priority == "high"
 
 
 @pytest.mark.asyncio
@@ -142,7 +166,9 @@ async def test_accounts_are_isolated_and_triage_is_category_aware() -> None:
 @pytest.mark.asyncio
 async def test_corrupt_or_malicious_state_is_ignored_fail_closed() -> None:
     store = _Store()
-    namespace = MemoryService.namespace("a@example.test", MemoryCategory.TASK)
+    namespace = MemoryService.namespace(
+        "stage9-memory@example.test", MemoryCategory.TASK
+    )
     await store.aput(
         namespace,
         "memory",
@@ -156,7 +182,9 @@ async def test_corrupt_or_malicious_state_is_ignored_fail_closed() -> None:
             "updated_at": datetime.now(UTC).isoformat(),
         },
     )
-    loaded = await MemoryService(store).load("a@example.test", MemoryCategory.TASK)
+    loaded = await MemoryService(store).load(
+        "stage9-memory@example.test", MemoryCategory.TASK
+    )
     assert loaded.version == 0
     assert loaded.typed_preferences().default_priority is None
 
