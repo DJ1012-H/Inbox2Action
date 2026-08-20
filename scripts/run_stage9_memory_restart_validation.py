@@ -8,14 +8,31 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import selectors
 import subprocess
 import sys
-from collections.abc import Sequence
+from collections.abc import Coroutine, Sequence
 from pathlib import Path
+from typing import Any
 
 from inbox2action.config import Settings
 from inbox2action.memory import MemoryCategory, MemoryService, UserEditDiff
 from inbox2action.stage4 import open_langgraph_postgres, upgrade_database
+
+
+def _windows_selector_loop() -> asyncio.AbstractEventLoop:
+    """Create the selector loop required by psycopg async mode on Windows."""
+
+    return asyncio.SelectorEventLoop(selectors.SelectSelector())
+
+
+def _run_async[T](coro: Coroutine[Any, Any, T]) -> T:
+    """Run one standalone async entry with a psycopg-compatible event loop."""
+
+    if sys.platform == "win32":
+        with asyncio.Runner(loop_factory=_windows_selector_loop) as runner:
+            return runner.run(coro)
+    return asyncio.run(coro)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -45,7 +62,9 @@ async def _write(owner: str, old_thread: str) -> int:
         preference_updates={"default_priority": "high"},
     )
     async with open_langgraph_postgres(database_url) as runtime:
-        outcome, document = await MemoryService(runtime.store).apply_user_edit(owner, diff)
+        outcome, document = await MemoryService(runtime.store).apply_user_edit(
+            owner, diff
+        )
     print(
         f"write status={outcome.value} category={MemoryCategory.TASK.value} "
         f"version={document.version} evidence_id={diff.evidence_id}"
@@ -87,9 +106,9 @@ def _child_args(args: argparse.Namespace, mode: str) -> list[str]:
 
 def run(args: argparse.Namespace) -> int:
     if args.mode == "write":
-        return asyncio.run(_write(args.owner, args.old_thread))
+        return _run_async(_write(args.owner, args.old_thread))
     if args.mode == "read":
-        return asyncio.run(_read(args.owner, args.new_thread))
+        return _run_async(_read(args.owner, args.new_thread))
     subprocess.run(_child_args(args, "write"), check=True)
     subprocess.run(_child_args(args, "read"), check=True)
     print(
