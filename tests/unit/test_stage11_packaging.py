@@ -48,3 +48,20 @@ def test_docker_context_excludes_runtime_credentials() -> None:
 
     for entry in (".env", "runtime.env", "gmail-token.json", "credentials"):
         assert entry in dockerignore
+
+
+def test_docker_runtime_does_not_sync_as_non_root() -> None:
+    dockerfile = (PROJECT_ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+    assert 'ENTRYPOINT ["uv", "run", "--frozen", "--no-sync", "python"]' in dockerfile
+
+
+def test_compose_seeds_oauth_token_into_a_persistent_writable_volume() -> None:
+    compose = (PROJECT_ROOT / "compose.yaml").read_text(encoding="utf-8")
+    wrapper = PROJECT_ROOT / "scripts" / "run_stage11_compose_entrypoint.py"
+
+    assert wrapper.exists()
+    assert "run_stage11_compose_entrypoint.py" in compose
+    assert "inbox2action-google-token" in compose
+    assert "gmail-token-source.json" in compose
+    assert "GMAIL_TOKEN_PATH: /var/lib/inbox2action/gmail-token.json" in compose

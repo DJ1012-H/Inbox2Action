@@ -37,7 +37,9 @@ services:
       - ${INBOX2ACTION_ENV_FILE:-.env}
     environment:
       INBOX2ACTION_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-    command: ["scripts/run_stage8_approval_ui.py", "--host", "0.0.0.0", "--port", "8080", "--skip-migrations"]
+      GMAIL_TOKEN_PATH: /var/lib/inbox2action/gmail-token.json
+      INBOX2ACTION_GMAIL_TOKEN_SOURCE: /run/inbox2action/gmail-token-source.json
+    command: ["scripts/run_stage11_compose_entrypoint.py", "scripts/run_stage8_approval_ui.py", "--host", "0.0.0.0", "--port", "8080", "--skip-migrations"]
     ports:
       - "${API_PORT:-8080}:8080"
     depends_on:
@@ -57,7 +59,11 @@ services:
         read_only: true
       - type: bind
         source: ${GMAIL_TOKEN_HOST_PATH:?GMAIL_TOKEN_HOST_PATH must be set in .env}
-        target: /run/inbox2action/gmail-token.json
+        target: /run/inbox2action/gmail-token-source.json
+        read_only: true
+      - type: volume
+        source: inbox2action-google-token
+        target: /var/lib/inbox2action
 
   worker:
     build:
@@ -67,7 +73,9 @@ services:
       - ${INBOX2ACTION_ENV_FILE:-.env}
     environment:
       INBOX2ACTION_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-    command: ["scripts/run_stage8_worker.py", "--max-messages", "10", "--poll-interval-seconds", "60", "--skip-migrations", "--ready-file", "/tmp/inbox2action-worker.ready"]
+      GMAIL_TOKEN_PATH: /var/lib/inbox2action/gmail-token.json
+      INBOX2ACTION_GMAIL_TOKEN_SOURCE: /run/inbox2action/gmail-token-source.json
+    command: ["scripts/run_stage11_compose_entrypoint.py", "scripts/run_stage8_worker.py", "--max-messages", "10", "--poll-interval-seconds", "60", "--skip-migrations", "--ready-file", "/tmp/inbox2action-worker.ready"]
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -85,7 +93,12 @@ services:
         read_only: true
       - type: bind
         source: ${GMAIL_TOKEN_HOST_PATH:?GMAIL_TOKEN_HOST_PATH must be set in .env}
-        target: /run/inbox2action/gmail-token.json
+        target: /run/inbox2action/gmail-token-source.json
+        read_only: true
+      - type: volume
+        source: inbox2action-google-token
+        target: /var/lib/inbox2action
 
 volumes:
   inbox2action-postgres:
+  inbox2action-google-token:

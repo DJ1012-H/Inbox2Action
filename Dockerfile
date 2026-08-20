@@ -18,10 +18,12 @@ COPY scripts ./scripts
 COPY src ./src
 
 RUN uv sync --frozen --no-dev \
-    && useradd --create-home --uid 10001 --shell /usr/sbin/nologin inbox2action
+    && useradd --create-home --uid 10001 --shell /usr/sbin/nologin inbox2action \
+    && mkdir -p /var/lib/inbox2action \
+    && chown inbox2action:inbox2action /var/lib/inbox2action
 
 USER inbox2action
 
 EXPOSE 8080
 
-ENTRYPOINT ["uv", "run", "--frozen", "python"]
+ENTRYPOINT ["uv", "run", "--frozen", "--no-sync", "python"]
