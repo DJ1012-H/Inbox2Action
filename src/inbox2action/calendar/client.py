@@ -86,10 +86,12 @@ class GoogleCalendarClient:
     ) -> Mapping[str, Any]:
         self.last_insert_diagnostic = None
         try:
+            request_body = dict(body)
+            if request_body.get("id") != event_id:
+                raise ValueError("event_body_id_mismatch")
             request = self._service.events().insert(
                 calendarId=calendar_id,
-                eventId=event_id,
-                body=dict(body),
+                body=request_body,
                 sendUpdates="none",
             )
         except Exception as exc:  # noqa: BLE001 - local request construction boundary

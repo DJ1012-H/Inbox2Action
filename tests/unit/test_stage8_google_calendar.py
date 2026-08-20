@@ -138,9 +138,19 @@ class FakeGoogleCalendarService:
     def events(self) -> FakeGoogleCalendarService:
         return self
 
-    def insert(self, **kwargs: object) -> FakeGoogleRequest:
+    def insert(
+        self,
+        *,
+        calendarId: str,
+        body: object,
+        sendUpdates: str,
+    ) -> FakeGoogleRequest:
         self.insert_count += 1
-        self.insert_kwargs = kwargs
+        self.insert_kwargs = {
+            "calendarId": calendarId,
+            "body": body,
+            "sendUpdates": sendUpdates,
+        }
         if self.insert_construction_error is not None:
             raise self.insert_construction_error
         return self.insert_request
@@ -552,7 +562,7 @@ async def test_production_insert_accepts_realistic_event_and_sends_safe_body() -
     assert result.resource.resource_id == permit.idempotency_key
     assert service.insert_kwargs is not None
     assert service.insert_kwargs["calendarId"] == "trusted-calendar@example.com"
-    assert service.insert_kwargs["eventId"] == permit.idempotency_key
+    assert "eventId" not in service.insert_kwargs
     assert service.insert_kwargs["sendUpdates"] == "none"
     assert "fields" not in service.insert_kwargs
     body = service.insert_kwargs["body"]
@@ -837,6 +847,26 @@ def test_local_request_construction_failure_is_classified_without_response() -> 
     assert "do-not-record" not in (diagnostic.provider_reason or "")
 
 
+def test_insert_requires_same_deterministic_id_in_body_before_transport() -> None:
+    service = FakeGoogleCalendarService({"id": "deterministic-event-id"})
+    client = GoogleCalendarClient(service)
+
+    with pytest.raises(GoogleCalendarLocalClientError) as raised:
+        client.insert_event(
+            calendar_id="trusted-calendar@example.com",
+            event_id="deterministic-event-id",
+            body={"id": "different-event-id"},
+        )
+
+    diagnostic = raised.value.insert_diagnostic
+    assert diagnostic is not None
+    assert diagnostic.outcome_class == InsertOutcomeClass.LOCAL_CLIENT_FAILURE
+    assert diagnostic.exception_type == "ValueError"
+    assert diagnostic.provider_reason == "event_body_id_mismatch"
+    assert diagnostic.request_may_have_reached_server is False
+    assert service.insert_count == 0
+
+
 @pytest.mark.asyncio
 async def test_timeout_404_404_found_reconciles_with_identity_match() -> None:
     permit = _authorized_calendar_permit()
@@ -912,7 +942,10 @@ async def test_409_reconciles_same_id_without_second_insert() -> None:
 
     assert result.status == "succeeded"
     assert service.insert_kwargs is not None
-    assert service.insert_kwargs["eventId"] == permit.idempotency_key
+    assert "eventId" not in service.insert_kwargs
+    insert_body = service.insert_kwargs["body"]
+    assert isinstance(insert_body, dict)
+    assert insert_body["id"] == permit.idempotency_key
     assert service.get_kwargs == {
         "calendarId": "trusted-calendar@example.com",
         "eventId": permit.idempotency_key,
